@@ -1,9 +1,0 @@
-# from a clean working folder that contains ONLY the files you want going forward
-git init
-git add .
-git commit -m "Fresh start"
-git branch -M main
-git remote add origin https://github.com/<YOUR-USER>/<YOUR-REPO>.git
-
-# overwrite the repo with this single commit
-git push -f origin main
