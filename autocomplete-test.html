@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Places Test</title>
+    <style>body{font:16px system-ui;padding:24px}</style>
+  </head>
+  <body>
+    <h1>Autocomplete Test (Switzerland only)</h1>
+    <input id="addr" placeholder="Type a Swiss address" style="width:420px;padding:8px">
+    <pre id="out"></pre>
+
+    <script>
+      function initMaps(){
+        const input = document.getElementById('addr');
+        const out = document.getElementById('out');
+        const ac = new google.maps.places.Autocomplete(input, {
+          componentRestrictions: { country: ["ch"] },
+          fields: ["place_id","formatted_address","geometry","address_components"]
+        });
+        ac.addListener('place_changed', ()=>{
+          const p = ac.getPlace();
+          out.textContent = JSON.stringify({
+            place_id: p.place_id,
+            formatted_address: p.formatted_address,
+            lat: p.geometry && p.geometry.location.lat(),
+            lng: p.geometry && p.geometry.location.lng()
+          }, null, 2);
+        });
+      }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDxiPfbUuLimnZa7MePEtAltu83ZDUugPs&libraries=places&region=CH&language=en&callback=initMaps"></script>
+  </body>
+</html>
