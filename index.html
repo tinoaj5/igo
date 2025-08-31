@@ -121,40 +121,92 @@
 
   <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
-  // ... keep your existing constants and element lookups above this ...
-
-  // --- make functions definitely global + set date min when opening owner modal
-  window.openOwner = function () {
-    const dlg = document.getElementById('ownerModal');
-    if (!dlg) return;
-    dlg.showModal();
-    prefillFormFromProfile('owner');           // use saved profile
-    // set min=today every time we open
-    const dateEl = document.querySelector('#ownerForm input[name="date"]');
-    if (dateEl) {
-      const today = new Date(); today.setHours(0,0,0,0);
-      dateEl.min = today.toISOString().slice(0,10);
-    }
-  };
-  window.closeOwner  = function () { const d=document.getElementById('ownerModal');  if(d) d.close(); };
-  window.openWalker  = function () { const d=document.getElementById('walkerModal'); if(d){ d.showModal(); prefillFormFromProfile('walker'); } };
-  window.closeWalker = function () { const d=document.getElementById('walkerModal'); if(d) d.close(); };
-  window.openSignin  = function () { const d=document.getElementById('signinModal'); if(d) d.showModal(); };
-  window.closeSignin = function () { const d=document.getElementById('signinModal'); if(d) d.close(); };
-
-  // --- block past dates on submit (extra guard)
-  async function handleSubmit(kind, form) {
-    // (keep your existing code here; just add this guard for owners)
-    if (kind === 'owner') {
-      const d = form.querySelector('input[name="date"]').value;
-      const todayStr = new Date().toISOString().slice(0,10);
-      if (!d || d < todayStr) { showToast("Date can't be in the past."); return; }
-    }
-    // ... then continue with your existing payload/POST logic ...
-  }
   </script>
 
   <!-- Load Maps (you can remove if not needed on this page) -->
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDxiPfbUuLimnZa7MePEtAltu83ZDUugPs&libraries=places&region=CH&language=en"></script>
+  <script>
+/* --- Fix broken buttons + add date rule + keep autofill --- */
+(function () {
+  // helper: set the date input min to today (no past days)
+  function setDateMinToday() {
+    // try by ID first
+    var el = document.getElementById('date_owner');
+    // fallback: look in the owner form by name="date"
+    if (!el) {
+      var form = document.getElementById('ownerForm') || document.querySelector('#ownerModal form');
+      if (form) el = form.querySelector('input[name="date"]');
+    }
+    if (!el) return;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var yyyyMmDd = today.toISOString().slice(0, 10);
+    el.min = yyyyMmDd;
+    // don't auto-fill a value; user will pick it
+  }
+
+  // toast fallback (in case your main script didn't define it)
+  function toast(msg) {
+    try { if (typeof showToast === 'function') return showToast(msg); } catch (_) {}
+    alert(msg);
+  }
+
+  // expose the open/close functions globally so inline onclick="..." works
+  window.openOwner = function () {
+    var dlg = document.getElementById('ownerModal');
+    if (!dlg) { console.warn('ownerModal not found'); return; }
+    dlg.showModal();
+    // prefill from saved profile if available
+    try { if (typeof prefillFormFromProfile === 'function') prefillFormFromProfile('owner', true); } catch (_) {}
+    setDateMinToday();
+  };
+
+  window.closeOwner = function () {
+    var d = document.getElementById('ownerModal');
+    if (d) d.close();
+  };
+
+  window.openWalker = function () {
+    var d = document.getElementById('walkerModal');
+    if (!d) { console.warn('walkerModal not found'); return; }
+    d.showModal();
+    try { if (typeof prefillFormFromProfile === 'function') prefillFormFromProfile('walker'); } catch (_) {}
+  };
+
+  window.closeWalker = function () {
+    var d = document.getElementById('walkerModal');
+    if (d) d.close();
+  };
+
+  window.openSignin = function () {
+    var d = document.getElementById('signinModal');
+    if (!d) { console.warn('signinModal not found'); return; }
+    d.showModal();
+  };
+
+  window.closeSignin = function () {
+    var d = document.getElementById('signinModal');
+    if (d) d.close();
+  };
+
+  // Extra guard at submit time to avoid past dates (in case user edits HTML)
+  document.addEventListener('submit', function (e) {
+    try {
+      var form = e.target;
+      if (!form || form.id !== 'ownerForm') return;
+      var dEl = form.querySelector('input[name="date"]');
+      if (!dEl) return;
+      var val = dEl.value;
+      var todayStr = new Date().toISOString().slice(0,10);
+      if (!val || val < todayStr) {
+        e.preventDefault();
+        toast("Date can't be in the past.");
+      }
+    } catch (_) {}
+  });
+
+  // also set min=today on initial load (in case the modal is already open)
+  document.addEventListener('DOMContentLoaded', setDateMinToday);
+})();
+</script>
 </body>
 </html>
