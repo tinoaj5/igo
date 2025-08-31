@@ -125,88 +125,69 @@
 
   <!-- Load Maps (you can remove if not needed on this page) -->
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDxiPfbUuLimnZa7MePEtAltu83ZDUugPs&libraries=places&region=CH&language=en"></script>
-  <script>
-/* --- Fix broken buttons + add date rule + keep autofill --- */
-(function () {
-  // helper: set the date input min to today (no past days)
-  function setDateMinToday() {
-    // try by ID first
-    var el = document.getElementById('date_owner');
-    // fallback: look in the owner form by name="date"
-    if (!el) {
-      var form = document.getElementById('ownerForm') || document.querySelector('#ownerModal form');
-      if (form) el = form.querySelector('input[name="date"]');
-    }
-    if (!el) return;
+<!-- FIX: make the header buttons work reliably + set date min + dialog fallback -->
+<script>
+(function(){
+  function supportsDialog(){
+    try { return typeof HTMLDialogElement === 'function' && !!document.createElement('dialog').showModal; }
+    catch (_){ return false; }
+  }
+  function ensureDialog(id){
+    var dlg = document.getElementById(id);
+    if(!dlg) console.warn('Dialog #' + id + ' not found');
+    return dlg;
+  }
+  function setDateMinToday(){
+    var el = document.querySelector('#ownerForm input[name="date"]');
+    if(!el) return;
     var today = new Date(); today.setHours(0,0,0,0);
-    var yyyyMmDd = today.toISOString().slice(0, 10);
-    el.min = yyyyMmDd;
-    // don't auto-fill a value; user will pick it
+    el.min = today.toISOString().slice(0,10);
+  }
+  function openDlg(id, onOpen){
+    var dlg = ensureDialog(id); if(!dlg) return;
+    try{
+      if (supportsDialog()) dlg.showModal();
+      else { dlg.setAttribute('open',''); dlg.style.display='block'; }
+    }catch(err){
+      console.error('showModal failed:', err);
+      dlg.setAttribute('open',''); dlg.style.display='block';
+    }
+    if (typeof onOpen === 'function') try{ onOpen(dlg); }catch(e){ console.warn(e); }
+  }
+  function closeDlg(id){
+    var dlg = ensureDialog(id); if(!dlg) return;
+    try{
+      if (supportsDialog()) dlg.close();
+      else { dlg.removeAttribute('open'); dlg.style.display='none'; }
+    }catch(_){}
   }
 
-  // toast fallback (in case your main script didn't define it)
-  function toast(msg) {
-    try { if (typeof showToast === 'function') return showToast(msg); } catch (_) {}
-    alert(msg);
-  }
-
-  // expose the open/close functions globally so inline onclick="..." works
-  window.openOwner = function () {
-    var dlg = document.getElementById('ownerModal');
-    if (!dlg) { console.warn('ownerModal not found'); return; }
-    dlg.showModal();
-    // prefill from saved profile if available
-    try { if (typeof prefillFormFromProfile === 'function') prefillFormFromProfile('owner', true); } catch (_) {}
-    setDateMinToday();
+  // Expose the functions globally so inline onclick="..." can always find them
+  window.openOwner = function(){
+    openDlg('ownerModal', function(){
+      if (typeof prefillFormFromProfile === 'function') prefillFormFromProfile('owner');
+      setDateMinToday(); // block past days
+    });
   };
-
-  window.closeOwner = function () {
-    var d = document.getElementById('ownerModal');
-    if (d) d.close();
+  window.closeOwner  = function(){ closeDlg('ownerModal'); };
+  window.openWalker  = function(){
+    openDlg('walkerModal', function(){
+      if (typeof prefillFormFromProfile === 'function') prefillFormFromProfile('walker');
+    });
   };
+  window.closeWalker = function(){ closeDlg('walkerModal'); };
+  window.openSignin  = function(){ openDlg('signinModal'); };
+  window.closeSignin = function(){ closeDlg('signinModal'); };
 
-  window.openWalker = function () {
-    var d = document.getElementById('walkerModal');
-    if (!d) { console.warn('walkerModal not found'); return; }
-    d.showModal();
-    try { if (typeof prefillFormFromProfile === 'function') prefillFormFromProfile('walker'); } catch (_) {}
-  };
-
-  window.closeWalker = function () {
-    var d = document.getElementById('walkerModal');
-    if (d) d.close();
-  };
-
-  window.openSignin = function () {
-    var d = document.getElementById('signinModal');
-    if (!d) { console.warn('signinModal not found'); return; }
-    d.showModal();
-  };
-
-  window.closeSignin = function () {
-    var d = document.getElementById('signinModal');
-    if (d) d.close();
-  };
-
-  // Extra guard at submit time to avoid past dates (in case user edits HTML)
-  document.addEventListener('submit', function (e) {
-    try {
-      var form = e.target;
-      if (!form || form.id !== 'ownerForm') return;
-      var dEl = form.querySelector('input[name="date"]');
-      if (!dEl) return;
-      var val = dEl.value;
-      var todayStr = new Date().toISOString().slice(0,10);
-      if (!val || val < todayStr) {
-        e.preventDefault();
-        toast("Date can't be in the past.");
-      }
-    } catch (_) {}
+  // Tiny accessibility helper: pressing Enter on a focused button with onclick triggers click
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && e.target && e.target.matches('button[onclick]')) e.target.click();
   });
 
-  // also set min=today on initial load (in case the modal is already open)
-  document.addEventListener('DOMContentLoaded', setDateMinToday);
+  // Console hint so you can verify quickly
+  console.log('Dialog support:', supportsDialog(), 'openOwner:', typeof window.openOwner);
 })();
 </script>
+
 </body>
 </html>
