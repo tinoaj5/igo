@@ -121,6 +121,37 @@
 
   <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
+  // ... keep your existing constants and element lookups above this ...
+
+  // --- make functions definitely global + set date min when opening owner modal
+  window.openOwner = function () {
+    const dlg = document.getElementById('ownerModal');
+    if (!dlg) return;
+    dlg.showModal();
+    prefillFormFromProfile('owner');           // use saved profile
+    // set min=today every time we open
+    const dateEl = document.querySelector('#ownerForm input[name="date"]');
+    if (dateEl) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      dateEl.min = today.toISOString().slice(0,10);
+    }
+  };
+  window.closeOwner  = function () { const d=document.getElementById('ownerModal');  if(d) d.close(); };
+  window.openWalker  = function () { const d=document.getElementById('walkerModal'); if(d){ d.showModal(); prefillFormFromProfile('walker'); } };
+  window.closeWalker = function () { const d=document.getElementById('walkerModal'); if(d) d.close(); };
+  window.openSignin  = function () { const d=document.getElementById('signinModal'); if(d) d.showModal(); };
+  window.closeSignin = function () { const d=document.getElementById('signinModal'); if(d) d.close(); };
+
+  // --- block past dates on submit (extra guard)
+  async function handleSubmit(kind, form) {
+    // (keep your existing code here; just add this guard for owners)
+    if (kind === 'owner') {
+      const d = form.querySelector('input[name="date"]').value;
+      const todayStr = new Date().toISOString().slice(0,10);
+      if (!d || d < todayStr) { showToast("Date can't be in the past."); return; }
+    }
+    // ... then continue with your existing payload/POST logic ...
+  }
   </script>
 
   <!-- Load Maps (you can remove if not needed on this page) -->
