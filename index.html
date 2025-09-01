@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DogWalkr — Switzerland (No Maps, Final Fix)</title>
+  <meta name="description" content="Book dog walks in Switzerland. No Maps. Buttons + dialogs hardened. OTP & profile save fixed." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🐾</text></svg>">
+  <style>
+    :root{ --bg:#0b0f14; --card:#0f1722cc; --text:#e8f0ff; --text-dim:#b7c2d6; --brand:#7cc6ff; --shadow:0 10px 30px rgba(0,0,0,.35); --ring:0 0 0 2px rgba(124,198,255,.35); --radius:18px; }
+    *{box-sizing:border-box}
+    body{margin:0; font:16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:var(--text);
+         background:radial-gradient(1200px 600px at 10% 10%, #162030, transparent 50%), radial-gradient(800px 600px at 100% 0%, #1a2740, transparent 40%), var(--bg);}
+    a{color:var(--brand)} .wrap{max-width:1080px; margin:0 auto; padding:28px}
+    header{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 14px; background:linear-gradient(180deg,rgba(255,255,255,.03),transparent); border-radius:var(--radius)}
+    .brand{display:flex; align-items:center; gap:12px; font-weight:800}
+    .logo{width:36px; height:36px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(135deg, #7cc6ff 0%, #b7ffcc 100%); box-shadow:var(--shadow); color:#001428; font-size:20px}
+    nav{display:flex; gap:12px; align-items:center}
+    .btn{appearance:none; border:0; background:linear-gradient(180deg, #122033, #0f1826); color:var(--text); padding:10px 14px; border-radius:14px; cursor:pointer; font-weight:700; box-shadow:var(--shadow); font-size:14px}
+    .btn:hover{filter:brightness(1.06)} .btn.primary{background:linear-gradient(180deg, #80d0ff, #66a8ff); color:#021326}
+    .hero{display:grid; grid-template-columns: 1.2fr 1fr; gap:24px; margin:36px 0} .card{background:var(--card); border:1px solid #213149; border-radius:var(--radius); box-shadow:var(--shadow); padding:24px}
+    .pill{display:inline-flex; gap:8px; align-items:center; border:1px solid #213149; background:#0d1522; padding:6px 10px; border-radius:999px; font-size:12px; color:#c2d2ec}
+    .muted{color:var(--text-dim)} footer{margin:42px 0 8px; display:flex; justify-content:space-between; color:var(--text-dim)}
+    dialog{width:min(560px, 92vw); border:1px solid #253552; background:#0c1320; border-radius:18px; color:#e9f2ff; box-shadow: var(--shadow)} dialog::backdrop{background:rgba(1,5,12,.6); backdrop-filter: blur(3px)}
+    .modal-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #1d2a41}
+    .modal-body{padding:16px}
+    form{display:grid; gap:12px} label{font-size:13px; color:#c7d4ea}
+    input,select,textarea{width:100%; padding:12px; border-radius:12px; background:#0a111c; color:#e9f2ff; border:1px solid #20304a; outline:none}
+    input:focus, select:focus, textarea:focus{box-shadow: var(--ring); border-color:#3a5a86}
+    textarea{min-height:92px; resize:vertical}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    .terms{display:flex; gap:10px; align-items:flex-start; font-size:13px; color:#c9d7ee}
+    .toast{position:fixed; top:18px; right:18px; background:linear-gradient(180deg,#122033,#0f1826); border:1px solid #22324c; color:#e9f2ff; padding:10px 14px; border-radius:12px; box-shadow:var(--shadow); display:none; z-index:99999}
+    #debug{position:fixed;left:12px;bottom:12px;background:#0c1320;border:1px solid #253552;border-radius:10px;padding:8px 10px;max-width:46vw;max-height:40vh;overflow:auto;font:12px/1.4 ui-monospace,consolas,monaco;color:#bfe;box-shadow:var(--shadow)}
+    #debug b{color:#9cf} #debug small{opacity:.8} #debug pre{white-space:pre-wrap;word-break:break-word}
+    @media (max-width: 900px){ .hero{grid-template-columns:1fr} .row{grid-template-columns:1fr} #debug{max-width:86vw} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">🐾</div>
+        <div>DogWalkr — Switzerland</div>
+      </div>
+      <nav>
+        <button class="btn" id="btnWalker" onclick="openWalker()">Become a Walker</button>
+        <button class="btn primary" id="btnOwner" onclick="openOwner()">Book a Walk</button>
+        <button class="btn" id="signinBtn" onclick="openSignin()">Sign in</button>
+        <div id="userChip" style="display:none" class="pill"></div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="card">
+        <h1>Fast dog walking, easy scheduling.</h1>
+        <p class="muted">Create an account once. We’ll auto-fill your info each time.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px">
+          <span class="pill">📍 Switzerland</span>
+          <span class="pill">⏱️ 30–90 min walks</span>
+          <span class="pill">⭐ Two-way ratings</span>
+        </div>
+      </div>
+      <div class="card">
+        <b>How it works</b>
+        <ol>
+          <li>Sign in with your email (6-digit code).</li>
+          <li>Complete your profile (name, phone, address).</li>
+          <li>Book a walk or become a walker.</li>
+        </ol>
+      </div>
+    </section>
+
+    <footer>
+      <span>© <span id="yr"></span> DogWalkr</span>
+      <span class="muted">No Maps build</span>
+    </footer>
+  </div>
+
+  <!-- Sign-in Modal -->
+  <dialog id="signinModal">
+    <div class="modal-head">
+      <strong>Sign in / Create account</strong>
+      <button class="btn" onclick="closeSignin()">Close</button>
+    </div>
+    <div class="modal-body">
+      <form id="signinForm">
+        <label>Email (we’ll send a 6-digit code)</label>
+        <input required type="email" name="email" placeholder="you@email.com">
+        <div style="display:flex; gap:8px; align-items:center">
+          <button class="btn primary" type="submit">Send code</button>
+          <button class="btn" id="resendBtn" type="button" disabled>Resend (<span id="resendT">30</span>s)</button>
+        </div>
+        <div class="muted" style="font-size:12px">Tip: first run can be slow. Check Spam/Promotions.</div>
+      </form>
+
+      <form id="codeForm" style="display:none; margin-top:8px">
+        <label>Enter 6-digit code</label>
+        <input required inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" name="code"
+               placeholder="123456" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)" autocomplete="one-time-code">
+        <button class="btn primary" type="submit">Verify</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Profile Modal -->
+  <dialog id="profileModal">
+    <div class="modal-head">
+      <strong>Your Profile</strong>
+      <button class="btn" onclick="closeProfile()">Close</button>
+    </div>
+    <div class="modal-body">
+      <form id="profileForm">
+        <div class="row">
+          <div><label>Full name</label><input name="name" placeholder="Jane Doe" required></div>
+          <div><label>Email</label><input name="email" type="email" placeholder="you@email.com" required></div>
+        </div>
+        <div class="row">
+          <div><label>Phone</label><input name="phone" placeholder="+41 79 123 45 67" required></div>
+          <div><label>Address</label><input name="address" placeholder="Street, City" required></div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Role (optional)</label>
+            <select name="role"><option value="">—</option><option value="owner">Owner</option><option value="walker">Walker</option></select>
+          </div>
+          <div>
+            <label>Preferred pay method</label>
+            <select name="pay_method"><option>Cash</option><option>Transfer</option></select>
+          </div>
+        </div>
+        <label>About you (optional)</label>
+        <textarea name="bio" placeholder="Short intro"></textarea>
+        <div class="row">
+          <button class="btn primary" type="submit">Save profile</button>
+          <button class="btn" type="button" onclick="addCard()">Add card (later)</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Owner Modal -->
+  <dialog id="ownerModal">
+    <div class="modal-head">
+      <strong>Book a Walk</strong>
+      <button class="btn" onclick="closeOwner()">Close</button>
+    </div>
+    <div class="modal-body">
+      <form id="ownerForm">
+        <div class="row">
+          <div><label>Full name</label><input required name="name" placeholder="Jane Doe"></div>
+          <div><label>Email</label><input required type="email" name="email" placeholder="jane@email.com"></div>
+        </div>
+        <div class="row">
+          <div><label>Phone</label><input required name="phone" placeholder="+41 79 123 45 67"></div>
+          <div><label>Neighborhood / Address</label><input required name="address" placeholder="Street, City"></div>
+        </div>
+        <div class="row">
+          <div><label>Dog name</label><input required name="dog_name" placeholder="Biscuit"></div>
+          <div>
+            <label>Dog size</label>
+            <select name="dog_size" required><option value="">Choose…</option><option>Small</option><option>Medium</option><option>Large</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Temperament</label>
+            <select name="temperament" required><option value="">Choose…</option><option>Calm</option><option>Energetic</option><option>Shy</option><option>Reactive</option></select>
+          </div>
+          <div><label>Special notes</label><input name="notes" placeholder="Leash reactive, avoid other dogs…"></div>
+        </div>
+        <div class="row">
+          <div><label>Date</label><input required type="date" id="date_owner" name="date"></div>
+          <div><label>Time</label><input required type="time" id="time_owner" name="time"></div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Duration</label>
+            <select name="duration" required><option value="">Choose…</option><option>30 min</option><option>45 min</option><option>60 min</option><option>90 min</option></select>
+          </div>
+          <div>
+            <label>Preferred pay method</label>
+            <select name="pay_method"><option>Cash</option><option>Transfer</option></select>
+          </div>
+        </div>
+        <label>Extra details</label>
+        <textarea name="extra" placeholder="Any building entry notes, route preference, etc."></textarea>
+        <div class="terms"><input required type="checkbox" id="ownerAgree"><label for="ownerAgree">I agree to the Terms.</label></div>
+        <button class="btn primary" type="submit">Submit request</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Walker Modal -->
+  <dialog id="walkerModal">
+    <div class="modal-head">
+      <strong>Become a Walker</strong>
+      <button class="btn" onclick="closeWalker()">Close</button>
+    </div>
+    <div class="modal-body">
+      <form id="walkerForm">
+        <div class="row">
+          <div><label>Full name</label><input required name="name" placeholder="John Smith"></div>
+          <div><label>Email</label><input required type="email" name="email" placeholder="john@email.com"></div>
+        </div>
+        <div class="row">
+          <div><label>Phone</label><input required name="phone" placeholder="+41 78 123 45 67"></div>
+          <div><label>City</label><input required name="city" placeholder="Zürich / Genève / Basel / Bern"></div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Experience level</label>
+            <select name="experience" required><option value="">Choose…</option><option>Beginner</option><option>Intermediate</option><option>Pro</option></select>
+          </div>
+          <div>
+            <label>Background check badge</label>
+            <select name="bg_check"><option>Not yet</option><option>Yes, verified</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div><label>Availability</label><input name="availability" placeholder="Weekdays 17:00–20:00; Weekends"></div>
+          <div><label>Rate expectation (per hour)</label><input name="rate" type="number" min="1" step="1" placeholder="25"></div>
+        </div>
+        <label>About you</label>
+        <textarea name="bio" placeholder="Short intro"></textarea>
+        <div class="terms"><input required type="checkbox" id="walkerAgree"><label for="walkerAgree">I accept the Independent Contractor Terms.</label></div>
+        <button class="btn primary" type="submit">Apply</button>
+      </form>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast">Saved.</div>
+  <div id="debug" hidden>
+    <b>Last server response</b> <small>(toggle with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>)</small>
+    <pre id="dbgpre">–</pre>
+  </div>
+
+  <script>
+    // === CONFIG ===
+    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbx3UWliJD5I0bLPuGX_fpoTjDm7SvOF3uLf-zVjgLpyS1u6KxhfK0BPoqm5DJMuLR3INQ/exec";
+    const AUTH_TOKEN_KEY = "dogwalkr_auth_token";
+    const PROFILE_KEY = "dogwalkr_profile";
+
+    // ===== Global dialog helpers (define early so buttons work) =====
+    function supportsDialog(){ try { return typeof HTMLDialogElement === 'function' && !!document.createElement('dialog').showModal; } catch (_){ return false; } }
+    function openDlg(id){ const d=document.getElementById(id); if(!d) return;
+      try{ if (supportsDialog()) d.showModal(); else { d.setAttribute('open',''); d.style.display='block'; } }
+      catch(_){ d.setAttribute('open',''); d.style.display='block'; }
+    }
+    function closeDlg(id){ const d=document.getElementById(id); if(!d) return;
+      try{ if (supportsDialog()) d.close(); else { d.removeAttribute('open'); d.style.display='none'; } }catch(_){}
+    }
+
+    // Expose for header buttons
+    window.openOwner  = () => { openDlg('ownerModal'); setDateMinToday(); prefillFormFromProfile('owner'); };
+    window.closeOwner = () => closeDlg('ownerModal');
+    window.openWalker = () => { openDlg('walkerModal'); prefillFormFromProfile('walker'); };
+    window.closeWalker= () => closeDlg('walkerModal');
+    window.openSignin = () => openDlg('signinModal');
+    window.closeSignin= () => closeDlg('signinModal');
+    window.openProfile= () => { prefillProfileForm(); openDlg('profileModal'); };
+    window.closeProfile= () => closeDlg('profileModal');
+
+    // Fallback listeners in case onclick is stripped by some hosts
+    document.addEventListener('DOMContentLoaded', () => {
+      const map = [
+        ['#btnOwner', window.openOwner],
+        ['#btnWalker', window.openWalker],
+        ['#signinBtn', window.openSignin],
+      ];
+      for (const [sel, fn] of map) { const el=document.querySelector(sel); if (el) el.addEventListener('click', fn); }
+    });
+
+    // ===== Utilities =====
+    const dbg = document.getElementById('debug'), dbgpre = document.getElementById('dbgpre');
+    function setDebug(msg){ try{ dbgpre.textContent = typeof msg==='string'? msg : JSON.stringify(msg,null,2);}catch(_){dbgpre.textContent=String(msg);} }
+    document.addEventListener('keydown', (e)=>{ if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='d') dbg.hidden = !dbg.hidden; });
+    function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg||'Saved.'; t.style.display='block'; setTimeout(()=> t.style.display='none', 2200); }
+    async function postForm(obj){ try { const body = new URLSearchParams({ payload: JSON.stringify(obj) });
+        const r = await fetch(window.FORM_ENDPOINT_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+        const txt = await r.text().catch(()=>'');
+        setDebug(txt || '(no text)');
+        try { return JSON.parse(txt); } catch (_){ return r.ok ? {ok:true, opaque:true} : {ok:false, error:'HTTP '+r.status}; }
+      } catch (e) { setDebug(String(e)); return {ok:false, error:String(e)}; }
+    }
+
+    // ===== Auth & Profile =====
+    function renderAuthUI(){ const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+      const signinBtn = document.getElementById('signinBtn');
+      const userChip  = document.getElementById('userChip');
+      if(token){ signinBtn.style.display='none'; userChip.style.display='inline-flex';
+        userChip.innerHTML = (prof.name || prof.email || 'Account') + ' · <button class="btn" style="margin-left:8px" onclick="openProfile()">Profile</button> <button class="btn" style="margin-left:8px" onclick="signOut()">Sign out</button>';
+      } else { signinBtn.style.display='inline-block'; userChip.style.display='none'; }
+    }
+    function signOut(){ localStorage.removeItem(AUTH_TOKEN_KEY); localStorage.removeItem(PROFILE_KEY); renderAuthUI(); showToast('Signed out'); }
+
+    function prefillFormFromProfile(kind){ try{ const prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+        const form = (kind==='owner') ? document.getElementById('ownerForm') : document.getElementById('walkerForm');
+        if(!form) return;
+        const map = (k) => form.querySelector(`[name="${k}"]`);
+        if (map('name') && prof.name) map('name').value = prof.name;
+        if (map('email') && prof.email) map('email').value = prof.email;
+        if (map('phone') && prof.phone) map('phone').value = prof.phone;
+        if(kind==='owner'){ if (map('address') && prof.address) map('address').value = prof.address; }
+        if(kind==='walker'){ if (map('city') && prof.city) map('city').value = prof.city;
+          if (map('experience') && prof.experience) map('experience').value = prof.experience;
+          if (map('availability') && prof.availability) map('availability').value = prof.availability;
+          if (map('rate') && prof.rate) map('rate').value = prof.rate;
+          if (map('bio') && prof.bio) map('bio').value = prof.bio; }
+      }catch(_){}
+    }
+
+    function prefillProfileForm(){ try{ const prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+        const form = document.getElementById('profileForm');
+        const map = (k) => form.querySelector(`[name="${k}"]`);
+        ['name','email','phone','address','role','pay_method','experience','rate','bio','city'].forEach(k=>{ if(map(k) && prof[k]) map(k).value = prof[k]; });
+      }catch(_){}
+    }
+
+    async function getProfile(){ const token = localStorage.getItem(AUTH_TOKEN_KEY); if(!token) return null;
+      const res = await postForm({ action:'get_profile', token, mode:'get_profile' });
+      if(res && res.ok){ localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || {})); return res.profile || null; }
+      return null;
+    }
+    async function saveProfile(role, data){ const token = localStorage.getItem(AUTH_TOKEN_KEY); if(!token) return {ok:false};
+      const res = await postForm({ action:'save_profile', mode:'save_profile', token, role, profile: data });
+      if(res && res.ok) localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || {}));
+      return res;
+    }
+
+    // ===== Profile submit =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const pf = document.getElementById('profileForm');
+      pf.addEventListener('submit', async (e)=>{ e.preventDefault();
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        if(!token){ showToast('Please sign in first.'); closeProfile(); openSignin(); return; }
+        const data = Object.fromEntries(new FormData(pf).entries());
+        const role = data.role || '';
+        const res = await saveProfile(role, data);
+        if(res && res.ok){ localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || data)); renderAuthUI(); showToast('Profile saved'); closeProfile(); }
+        else { showToast('Could not save profile (server).'); }
+      });
+    });
+
+    // ===== Sign-in flow =====
+    const resendBtn = document.getElementById('resendBtn');
+    const resendT   = document.getElementById('resendT');
+    let currentEmail = '', timerId = null;
+    function startResendTimer(seconds=30){ clearInterval(timerId); resendBtn.disabled = true; resendT.textContent = String(seconds);
+      timerId = setInterval(()=>{ let v = parseInt(resendT.textContent,10); v -= 1; resendT.textContent = String(v);
+        if (v <= 0) { clearInterval(timerId); resendBtn.disabled = false; resendT.textContent = '0'; } }, 1000);
+    }
+
+    document.getElementById('signinForm').addEventListener('submit', async (e)=>{ e.preventDefault();
+      const email = e.target.email.value.trim(); if(!email) return; currentEmail = email;
+      const payload = { action:'start_login', mode:'send_code', email, value:email, address:email };
+      const res = await postForm(payload);
+      e.target.style.display='none'; const cf = document.getElementById('codeForm'); cf.style.display='grid'; cf.dataset.email = email;
+      startResendTimer(30);
+      showToast((res && res.ok) ? ('Code sent to '+email) : 'Trying to send code… If no email, press Resend in 30s.');
+    });
+    resendBtn.addEventListener('click', async ()=>{ if(!currentEmail) return;
+      resendBtn.disabled = true;
+      const res = await postForm({ action:'start_login', mode:'send_code', email: currentEmail, value: currentEmail, address: currentEmail });
+      showToast((res && res.ok) ? ('Code re-sent to '+currentEmail) : 'Could not resend. Try again later.');
+      if (res && res.ok) startResendTimer(30); else resendBtn.disabled = false;
+    });
+
+    document.getElementById('codeForm').addEventListener('submit', async (e)=>{ e.preventDefault();
+      const code = e.target.code.value.trim(); const email = e.target.dataset.email;
+      const res = await postForm({ action:'verify_code', mode:'verify_code', email, code, otp: code, value: code });
+      if(res && res.ok && res.token){ localStorage.setItem(AUTH_TOKEN_KEY, res.token);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || { email })); showToast('Signed in!'); renderAuthUI(); closeSignin(); setTimeout(openProfile, 350);
+      } else { showToast('Invalid/expired code or server mismatch.'); }
+    });
+
+    // ===== Owner / Walker submit =====
+    document.getElementById('ownerForm').addEventListener('submit', async (e)=>{ e.preventDefault();
+      const d = document.getElementById('date_owner').value; const todayStr = new Date().toISOString().slice(0,10);
+      if (!d || d < todayStr) { showToast("Date can't be in the past."); return; }
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const token = localStorage.getItem(AUTH_TOKEN_KEY); if(token) data._token = token;
+      const res = await postForm({ kind:'owner', data });
+      showToast((res && res.ok) ? 'Submitted to Google Sheet.' : 'Saved locally (server busy).'); e.target.reset(); closeOwner();
+    });
+
+    document.getElementById('walkerForm').addEventListener('submit', async (e)=>{ e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const token = localStorage.getItem(AUTH_TOKEN_KEY); if(token) data._token = token;
+      const res = await postForm({ kind:'walker', data });
+      showToast((res && res.ok) ? 'Submitted to Google Sheet.' : 'Saved locally (server busy).'); e.target.reset(); closeWalker();
+    });
+
+    // ===== Misc =====
+    function setDateMinToday(){ const el = document.getElementById('date_owner'); if(!el) return; const tzToday = new Date().toISOString().slice(0,10); el.min = tzToday; if(!el.value) el.value = tzToday; }
+    function addCard(){ alert('Card-on-file will be added later (Stripe).'); }
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    (async function init(){
+      // In case any earlier JS error happens, show it
+      window.addEventListener('error', (e)=>{ console.error('[JS Error]', e.message); showToast('JS error: '+e.message); });
+      renderAuthUI();
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if(token) await getProfile();
+      renderAuthUI();
+      setDateMinToday();
+      console.log('[Final Fix] Ready. Endpoint:', window.FORM_ENDPOINT_URL);
+    })();
+  </script>
+</body>
+</html>
