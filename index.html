@@ -375,22 +375,64 @@
       } else { showToast('Invalid/expired code or server mismatch.'); }
     });
 
-    // ===== Owner / Walker submit =====
-    document.getElementById('ownerForm').addEventListener('submit', async (e)=>{ e.preventDefault();
-      const d = document.getElementById('date_owner').value; const todayStr = new Date().toISOString().slice(0,10);
-      if (!d || d < todayStr) { showToast("Date can't be in the past."); return; }
-      const data = Object.fromEntries(new FormData(e.target).entries());
-      const token = localStorage.getItem(AUTH_TOKEN_KEY); if(token) data._token = token;
-      const res = await postForm({ kind:'owner', data });
-      showToast((res && res.ok) ? 'Submitted to Google Sheet.' : 'Saved locally (server busy).'); e.target.reset(); closeOwner();
-    });
+// ===== Owner / Walker submit =====
+document.getElementById('ownerForm').addEventListener('submit', async (e)=> {
+  e.preventDefault();
+  const d = document.getElementById('date_owner').value;
+  const todayStr = new Date().toISOString().slice(0,10);
+  if (!d || d < todayStr) {
+    showToast("Date can't be in the past.");
+    return;
+  }
 
-    document.getElementById('walkerForm').addEventListener('submit', async (e)=>{ e.preventDefault();
-      const data = Object.fromEntries(new FormData(e.target).entries());
-      const token = localStorage.getItem(AUTH_TOKEN_KEY); if(token) data._token = token;
-      const res = await postForm({ kind:'walker', data });
-      showToast((res && res.ok) ? 'Submitted to Google Sheet.' : 'Saved locally (server busy).'); e.target.reset(); closeWalker();
-    });
+  const formData = Object.fromEntries(new FormData(e.target).entries());
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+  let res;
+  if (token) {
+    // Create a Job in the new Jobs sheet (bidding mode by default)
+    const job = {
+      owner_name: formData.name || '',
+      dog_name: formData.dog_name || '',
+      dog_size: formData.dog_size || '',
+      temperament: formData.temperament || '',
+      notes: formData.notes || '',
+      date: formData.date || '',
+      time: formData.time || '',
+      duration: formData.duration || '',
+      max_price: formData.max_price || '',    // you can add this field to the form later
+      city: formData.city || '',
+      address: formData.address || '',
+      pay_method: formData.pay_method || '',
+      extra: formData.extra || '',
+      mode: 'bidding'                         // or 'instant' later if you add a toggle
+    };
+    res = await postForm({ action: 'create_job', token, job });
+  } else {
+    // Fallback: older behavior – just log to "center"
+    res = await postForm({ kind: 'owner', data: formData });
+  }
+
+  if (res && res.ok) {
+    showToast(token ? 'Request sent to walkers.' : 'Submitted to Google Sheet.');
+  } else {
+    showToast('Saved locally (server busy).');
+  }
+
+  e.target.reset();
+  closeOwner();
+});
+
+document.getElementById('walkerForm').addEventListener('submit', async (e)=> {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  const token = localStorage.getItem(AUTH_TOKEN_KEY); if (token) data._token = token;
+  const res = await postForm({ kind:'walker', data });
+  showToast((res && res.ok) ? 'Submitted to Google Sheet.' : 'Saved locally (server busy).');
+  e.target.reset();
+  closeWalker();
+});
+
 
     // ===== Misc =====
     function setDateMinToday(){ const el = document.getElementById('date_owner'); if(!el) return; const tzToday = new Date().toISOString().slice(0,10); el.min = tzToday; if(!el.value) el.value = tzToday; }
