@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DogWalkr — Switzerland (No Maps, Jobs+Bids)</title>
-  <meta name="description" content="Book dog walks in Switzerland. No Maps. OTP login, profiles, and a simple marketplace for dog walking." />
+  <title>DogWalkr — Switzerland</title>
+  <meta name="description" content="Book dog walks in Switzerland. OTP login, profiles, and a simple marketplace for dog walking." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🐾</text></svg>">
   <style>
     :root{
@@ -91,7 +91,7 @@
       color:var(--text-dim);
     }
     dialog{
-      width:min(560px, 92vw);
+      width:min(600px, 92vw);
       border:1px solid #253552;
       background:#0c1320;
       border-radius:18px;
@@ -158,8 +158,6 @@
     #debug b{color:#9cf}
     #debug small{opacity:.8}
     #debug pre{white-space:pre-wrap;word-break:break-word}
-    .pill button{background:none; border:0; color:inherit; padding:0; font:inherit; cursor:pointer}
-    .pill button:hover{text-decoration:underline}
     @media (max-width:900px){
       .hero{grid-template-columns:1fr}
       .row{grid-template-columns:1fr}
@@ -195,16 +193,19 @@
       <div class="card">
         <b>How it works</b>
         <ol>
-          <li>Sign in with your email (6-digit code).</li>
+          <li>Sign in with your email (we send a 6-digit code).</li>
           <li>Complete your profile (name, phone, address, role).</li>
-          <li>Book a walk as an owner or see open walks as a walker.</li>
+          <li>Owners book walks. Walkers see & accept requests.</li>
         </ol>
+        <p class="muted" style="font-size:13px;margin-top:6px;">
+          For testing you can use code <b>555555</b> instead of email code (dev only).
+        </p>
       </div>
     </section>
 
     <footer>
       <span>© <span id="yr"></span> DogWalkr</span>
-      <span class="muted">No Maps build</span>
+      <span class="muted">No insurance. Owners & walkers are independent.</span>
     </footer>
   </div>
 
@@ -222,11 +223,13 @@
           <button class="btn primary" type="submit">Send code</button>
           <button class="btn" id="resendBtn" type="button" disabled>Resend (<span id="resendT">30</span>s)</button>
         </div>
-        <div class="muted" style="font-size:12px">Tip: first run can be slow. Check Spam/Promotions.</div>
+        <div class="muted" style="font-size:12px">
+          Tip: first email can take a few seconds. Check Spam/Promotions.
+        </div>
       </form>
 
       <form id="codeForm" style="display:none; margin-top:8px">
-        <label>Enter 6-digit code</label>
+        <label>Enter 6-digit code (or 555555 for dev)</label>
         <input required inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" name="code"
                placeholder="123456"
                oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)"
@@ -266,7 +269,7 @@
         </div>
         <div class="row">
           <div>
-            <label>Role (optional)</label>
+            <label>Role</label>
             <select name="role">
               <option value="">—</option>
               <option value="owner">Owner</option>
@@ -295,7 +298,6 @@
         <textarea name="bio" placeholder="Short intro"></textarea>
         <div class="row">
           <button class="btn primary" type="submit">Save profile</button>
-          <button class="btn" type="button" onclick="addCard()">Add card (later)</button>
         </div>
       </form>
     </div>
@@ -406,7 +408,7 @@
         <textarea name="extra" placeholder="Any building entry notes, route preference, etc."></textarea>
         <div class="terms">
           <input required type="checkbox" id="ownerAgree">
-          <label for="ownerAgree">I agree to the Terms.</label>
+          <label for="ownerAgree">I understand DogWalkr is only a marketplace. No insurance is provided.</label>
         </div>
         <button class="btn primary" type="submit">Submit request</button>
       </form>
@@ -473,14 +475,14 @@
         <textarea name="bio" placeholder="Short intro"></textarea>
         <div class="terms">
           <input required type="checkbox" id="walkerAgree">
-          <label for="walkerAgree">I accept the Independent Contractor Terms.</label>
+          <label for="walkerAgree">I accept that I am an independent walker (no employment, no insurance).</label>
         </div>
         <button class="btn primary" type="submit">Apply</button>
       </form>
     </div>
   </dialog>
 
-  <!-- Walker Jobs Modal (second page for walkers) -->
+  <!-- Walker Jobs Modal (walker dashboard) -->
   <dialog id="jobsModal">
     <div class="modal-head">
       <strong>Open walks</strong>
@@ -488,11 +490,28 @@
     </div>
     <div class="modal-body">
       <p class="muted" id="jobsHint" style="font-size:13px">
-        These are requests from owners that are still open.
+        These are owner requests that are still open.
       </p>
       <div id="jobsList" style="display:grid; gap:12px; margin-top:8px;"></div>
       <div id="jobsEmpty" class="muted" style="margin-top:8px; display:none;">
         No open requests yet. Check back later.
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Owner Jobs Modal (owner dashboard) -->
+  <dialog id="ownerJobsModal">
+    <div class="modal-head">
+      <strong>My requests</strong>
+      <button class="btn" onclick="closeOwnerJobs()">Close</button>
+    </div>
+    <div class="modal-body">
+      <p class="muted" style="font-size:13px">
+        Your jobs, with latest bid and number of bids. Click “View bids” to see all walkers.
+      </p>
+      <div id="ownerJobsList" style="display:grid; gap:12px; margin-top:8px;"></div>
+      <div id="ownerJobsEmpty" class="muted" style="margin-top:8px; display:none;">
+        You haven’t requested any walks yet.
       </div>
     </div>
   </dialog>
@@ -506,7 +525,8 @@
 
   <script>
     // === CONFIG ===
-    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbw5EpzMzFjrpG9O8xAhQLaVlZZ1u1KVMQQQ8xzcyg8XvvOCDEta2agj9qgDIwYexjnSng/exec";
+    // Put YOUR deployed Web App URL here:
+    window.FORM_ENDPOINT_URL = "YOUR_WEB_APP_URL_HERE";
     const AUTH_TOKEN_KEY = "dogwalkr_auth_token";
     const PROFILE_KEY    = "dogwalkr_profile";
 
@@ -533,23 +553,23 @@
     }
 
     // Expose for header buttons
-    window.openOwner   = () => { openDlg('ownerModal'); setDateMinToday(); prefillFormFromProfile('owner'); };
-    window.closeOwner  = () => closeDlg('ownerModal');
-    window.openWalker  = () => { openDlg('walkerModal'); prefillFormFromProfile('walker'); };
-    window.closeWalker = () => closeDlg('walkerModal');
-    window.openSignin  = () => openDlg('signinModal');
-    window.closeSignin = () => closeDlg('signinModal');
-    window.openProfile = () => { prefillProfileForm(); openDlg('profileModal'); };
-    window.closeProfile= () => closeDlg('profileModal');
+    window.openOwner    = () => { openDlg('ownerModal'); setDateMinToday(); prefillFormFromProfile('owner'); };
+    window.closeOwner   = () => closeDlg('ownerModal');
+    window.openWalker   = () => { openDlg('walkerModal'); prefillFormFromProfile('walker'); };
+    window.closeWalker  = () => closeDlg('walkerModal');
+    window.openSignin   = () => openDlg('signinModal');
+    window.closeSignin  = () => closeDlg('signinModal');
+    window.openProfile  = () => { prefillProfileForm(); openDlg('profileModal'); };
+    window.closeProfile = () => closeDlg('profileModal');
 
-    // Walker jobs "second page"
-    window.openJobs = async () => {
-      openDlg('jobsModal');
-      await refreshJobs();
-    };
-    window.closeJobs = () => closeDlg('jobsModal');
+    // Walker jobs “second page”
+    window.openJobs     = async () => { openDlg('jobsModal'); await refreshJobs(); };
+    window.closeJobs    = () => closeDlg('jobsModal');
 
-    // Fallback listeners in case onclick is stripped by some hosts
+    // Owner jobs “second page”
+    window.openOwnerJobs  = async () => { openDlg('ownerJobsModal'); await refreshOwnerJobs(); };
+    window.closeOwnerJobs = () => closeDlg('ownerJobsModal');
+
     document.addEventListener('DOMContentLoaded', () => {
       const map = [
         ['#btnOwner',  window.openOwner],
@@ -612,11 +632,15 @@
 
         const role = (prof.role || '').toLowerCase();
         const isWalker = role === 'walker' || role.includes('walker');
+        const isOwner  = role === 'owner'  || role.includes('owner');
 
         let html = (prof.name || prof.email || 'Account');
 
         if (isWalker) {
           html += ' · <button class="btn" style="margin-left:8px" onclick="openJobs()">Jobs</button>';
+        }
+        if (isOwner) {
+          html += ' · <button class="btn" style="margin-left:8px" onclick="openOwnerJobs()">My requests</button>';
         }
 
         html += ' · <button class="btn" style="margin-left:8px" onclick="openProfile()">Profile</button>';
@@ -674,7 +698,7 @@
     async function getProfile(){
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) return null;
-      const res = await postForm({ action:'get_profile', token, mode:'get_profile' });
+      const res = await postForm({ action:'get_profile', token });
       if (res && res.ok){
         localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || {}));
         return res.profile || null;
@@ -685,7 +709,7 @@
     async function saveProfile(role, data){
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) return {ok:false};
-      const res = await postForm({ action:'save_profile', mode:'save_profile', token, role, profile:data });
+      const res = await postForm({ action:'save_profile', token, role, profile:data });
       if (res && res.ok){
         localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || {}));
       }
@@ -722,13 +746,12 @@
     document.getElementById('signinForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const email = e.target.email.value.trim();
-      const res   = await postForm({ action:'start_login', mode:'start_login', email });
+      const res   = await postForm({ action:'start_login', email });
       if (res && res.ok){
         showToast('Code sent (if email exists).');
         const cf = document.getElementById('codeForm');
         cf.style.display = 'grid';
         cf.dataset.email = email;
-        // simple resend timer
         const resendBtn = document.getElementById('resendBtn');
         const resendT   = document.getElementById('resendT');
         let secs = 30;
@@ -746,7 +769,7 @@
           resendBtn.disabled = true;
           secs = 30;
           resendT.textContent = secs;
-          const r2 = await postForm({ action:'start_login', mode:'start_login', email });
+          const r2 = await postForm({ action:'start_login', email });
           showToast((r2 && r2.ok) ? 'Code re-sent.' : 'Could not resend.');
         };
       } else {
@@ -758,7 +781,7 @@
       e.preventDefault();
       const code  = e.target.code.value.trim();
       const email = e.target.dataset.email;
-      const res   = await postForm({ action:'verify_code', mode:'verify_code', email, code, otp:code, value:code });
+      const res   = await postForm({ action:'verify_code', email, code });
       if (res && res.ok && res.token){
         localStorage.setItem(AUTH_TOKEN_KEY, res.token);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || { email }));
@@ -882,6 +905,126 @@
       }
     }
 
+    // ===== Owner jobs logic =====
+    async function refreshOwnerJobs(){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Please sign in as an owner first.');
+        closeOwnerJobs();
+        openSignin();
+        return;
+      }
+
+      const listEl  = document.getElementById('ownerJobsList');
+      const emptyEl = document.getElementById('ownerJobsEmpty');
+      if (!listEl || !emptyEl) return;
+
+      listEl.innerHTML = '<div class="muted">Loading your requests…</div>';
+      emptyEl.style.display = 'none';
+
+      const res = await postForm({ action:'list_my_jobs', token });
+      if (!res || !res.ok || !Array.isArray(res.jobs)){
+        listEl.innerHTML = '<div class="muted">Could not load your jobs. Try again later.</div>';
+        emptyEl.style.display = 'none';
+        return;
+      }
+
+      const jobs = res.jobs;
+      listEl.innerHTML = '';
+      if (jobs.length === 0){
+        emptyEl.style.display = 'block';
+        return;
+      } else {
+        emptyEl.style.display = 'none';
+      }
+
+      jobs.forEach(job=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const when = (job.date || '') + (job.time ? (' · ' + job.time) : '');
+        const city = job.city || (job.address || '').split(',').slice(-1)[0];
+        const price = job.max_price ? `${job.max_price} CHF max` : 'Price open';
+        const status = (job.status || '').toLowerCase() || 'open';
+
+        const latestPrice  = job.latest_bid_price  || '';
+        const latestStatus = job.latest_bid_status || '';
+        const latestEmail  = job.latest_bid_email  || '';
+        const bidCount     = job.bid_count || 0;
+
+        let latestLine = 'No bids yet.';
+        if (bidCount > 0){
+          latestLine = `Latest bid: ${latestPrice || '? CHF'} · ${latestStatus || ''} · ${latestEmail || ''}`;
+        }
+
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+            <div>
+              <div><b>${job.dog_name || 'Dog'}</b>${job.dog_size ? ' · ' + job.dog_size : ''}</div>
+              <div class="muted" style="font-size:13px">
+                ${when || 'When: TBD'} · ${city || 'City not set'}
+              </div>
+              <div class="muted" style="font-size:13px">
+                Status: ${status} · Mode: ${(job.mode || 'bidding')}
+              </div>
+              <div class="muted" style="font-size:13px">
+                Max price: ${price} · Bids: ${bidCount}
+              </div>
+              <div class="muted" style="font-size:13px; margin-top:4px;">
+                ${latestLine}
+              </div>
+              <div class="muted" style="font-size:13px; margin-top:4px;" data-bids-container="1">
+                <!-- bids will appear here -->
+              </div>
+            </div>
+            <div>
+              <button class="btn" data-job-id="${job.job_id || ''}">View bids</button>
+            </div>
+          </div>
+        `;
+
+        const btn = card.querySelector('button');
+        const bidsContainer = card.querySelector('[data-bids-container]');
+        btn.addEventListener('click', () => openBidsForJob(job.job_id, bidsContainer));
+        listEl.appendChild(card);
+      });
+    }
+
+    async function openBidsForJob(jobId, container){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Please sign in first.');
+        return;
+      }
+      if (!jobId){
+        showToast('Invalid job.');
+        return;
+      }
+      if (!container) return;
+
+      container.textContent = 'Loading bids…';
+
+      const res = await postForm({ action:'list_bids', token, job_id: jobId });
+      if (!res || !res.ok || !Array.isArray(res.bids)){
+        container.textContent = 'Could not load bids.';
+        return;
+      }
+      const bids = res.bids;
+      if (bids.length === 0){
+        container.textContent = 'No bids yet.';
+        return;
+      }
+
+      const lines = bids.map(b => {
+        const price = b.price || '';
+        const who   = b.walker_email || '';
+        const status= b.status || '';
+        const msg   = b.message ? ` · "${b.message}"` : '';
+        return `• ${price} CHF · ${status} · ${who}${msg}`;
+      });
+      container.innerHTML = lines.join('<br>');
+    }
+
     // ===== Owner / Walker submit =====
     document.getElementById('ownerForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
@@ -915,7 +1058,6 @@
         };
         res = await postForm({ action:'create_job', token, job });
       } else {
-        // Fallback: older behavior – just log owner lead into "center"
         res = await postForm({ kind:'owner', data:formData });
       }
 
@@ -948,14 +1090,11 @@
       el.min = tzToday;
       if (!el.value) el.value = tzToday;
     }
-    function addCard(){ alert('Card-on-file will be added later (Stripe).'); }
     document.getElementById('yr').textContent = new Date().getFullYear();
 
     (async function init(){
       window.addEventListener('error', (e)=>{
         console.error('[JS Error]', e.message);
-        // Comment out toast spam if you want
-        // showToast('JS error: '+e.message);
       });
       renderAuthUI();
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
