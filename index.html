@@ -139,57 +139,126 @@
     </div>
   </dialog>
 
-  <!-- Owner Modal -->
-  <dialog id="ownerModal">
-    <div class="modal-head">
-      <strong>Book a Walk</strong>
-      <button class="btn" onclick="closeOwner()">Close</button>
+<!-- Owner Modal -->
+<dialog id="ownerModal">
+  <div class="modal-head">
+    <strong>Book a Walk</strong>
+    <button class="btn" onclick="closeOwner()">Close</button>
+  </div>
+  <div class="modal-body">
+<form id="ownerForm">
+  <div class="row">
+    <div>
+      <label>Full name</label>
+      <input required name="name" placeholder="Jane Doe">
     </div>
-    <div class="modal-body">
-      <form id="ownerForm">
-        <div class="row">
-          <div><label>Full name</label><input required name="name" placeholder="Jane Doe"></div>
-          <div><label>Email</label><input required type="email" name="email" placeholder="jane@email.com"></div>
-        </div>
-        <div class="row">
-          <div><label>Phone</label><input required name="phone" placeholder="+41 79 123 45 67"></div>
-          <div><label>Neighborhood / Address</label><input required name="address" placeholder="Street, City"></div>
-        </div>
-        <div class="row">
-          <div><label>Dog name</label><input required name="dog_name" placeholder="Biscuit"></div>
-          <div>
-            <label>Dog size</label>
-            <select name="dog_size" required><option value="">Choose…</option><option>Small</option><option>Medium</option><option>Large</option></select>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Temperament</label>
-            <select name="temperament" required><option value="">Choose…</option><option>Calm</option><option>Energetic</option><option>Shy</option><option>Reactive</option></select>
-          </div>
-          <div><label>Special notes</label><input name="notes" placeholder="Leash reactive, avoid other dogs…"></div>
-        </div>
-        <div class="row">
-          <div><label>Date</label><input required type="date" id="date_owner" name="date"></div>
-          <div><label>Time</label><input required type="time" id="time_owner" name="time"></div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Duration</label>
-            <select name="duration" required><option value="">Choose…</option><option>30 min</option><option>45 min</option><option>60 min</option><option>90 min</option></select>
-          </div>
-          <div>
-            <label>Preferred pay method</label>
-            <select name="pay_method"><option>Cash</option><option>Transfer</option></select>
-          </div>
-        </div>
-        <label>Extra details</label>
-        <textarea name="extra" placeholder="Any building entry notes, route preference, etc."></textarea>
-        <div class="terms"><input required type="checkbox" id="ownerAgree"><label for="ownerAgree">I agree to the Terms.</label></div>
-        <button class="btn primary" type="submit">Submit request</button>
-      </form>
+    <div>
+      <label>Email</label>
+      <input required type="email" name="email" placeholder="jane@email.com">
     </div>
-  </dialog>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Phone</label>
+      <input required name="phone" placeholder="+41 79 123 45 67">
+    </div>
+    <div>
+      <label>Neighborhood / Address</label>
+      <input required name="address" placeholder="Street, City">
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Dog name</label>
+      <input required name="dog_name" placeholder="Biscuit">
+    </div>
+    <div>
+      <label>Dog size</label>
+      <select name="dog_size" required>
+        <option value="">Choose…</option>
+        <option>Small</option>
+        <option>Medium</option>
+        <option>Large</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Temperament</label>
+      <select name="temperament" required>
+        <option value="">Choose…</option>
+        <option>Calm</option>
+        <option>Energetic</option>
+        <option>Shy</option>
+        <option>Reactive</option>
+      </select>
+    </div>
+    <div>
+      <label>Special notes</label>
+      <input name="notes" placeholder="Leash reactive, avoid other dogs…">
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Date</label>
+      <input required type="date" id="date_owner" name="date">
+    </div>
+    <div>
+      <label>Time</label>
+      <input required type="time" id="time_owner" name="time">
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Duration</label>
+      <select name="duration" required>
+        <option value="">Choose…</option>
+        <option>30</option>
+        <option>60</option>
+        <option>90</option>
+      </select>
+    </div>
+    <div>
+      <label>Preferred pay method</label>
+      <select name="pay_method">
+        <option>Cash</option>
+        <option>Transfer</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- NEW: price + matching mode -->
+  <div class="row">
+    <div>
+      <label>Max price you’re willing to pay (CHF)</label>
+      <input name="max_price" type="number" min="1" step="1" placeholder="25">
+    </div>
+    <div>
+      <label>Matching mode</label>
+      <select name="mode">
+        <option value="bidding">Let walkers bid (cheaper, slower)</option>
+        <option value="instant">First available walker (faster)</option>
+      </select>
+    </div>
+  </div>
+
+  <label>Extra details</label>
+  <textarea name="extra" placeholder="Any building entry notes, route preference, etc."></textarea>
+
+  <div class="terms">
+    <input required type="checkbox" id="ownerAgree">
+    <label for="ownerAgree">I agree to the Terms.</label>
+  </div>
+
+  <button class="btn primary" type="submit">Submit request</button>
+</form>
+
+      ...
 
   <!-- Walker Modal -->
   <dialog id="walkerModal">
