@@ -187,7 +187,7 @@
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px">
           <span class="pill">📍 Switzerland</span>
           <span class="pill">⏱️ 30–90 min walks</span>
-          <span class="pill">⭐ Two-way ratings</span>
+          <span class="pill">⭐ Two-way ratings (later)</span>
         </div>
       </div>
       <div class="card">
@@ -195,10 +195,10 @@
         <ol>
           <li>Sign in with your email (we send a 6-digit code).</li>
           <li>Complete your profile (name, phone, address, role).</li>
-          <li>Owners book walks. Walkers see & accept requests.</li>
+          <li>Owners book walks. Walkers see & accept or bid.</li>
         </ol>
         <p class="muted" style="font-size:13px;margin-top:6px;">
-          For testing you can use code <b>555555</b> instead of email code (dev only).
+          For testing you can use code <b>555555</b> instead of the email code (dev only).
         </p>
       </div>
     </section>
@@ -482,7 +482,7 @@
     </div>
   </dialog>
 
-  <!-- Walker Jobs Modal (walker dashboard) -->
+  <!-- Walker Jobs Modal -->
   <dialog id="jobsModal">
     <div class="modal-head">
       <strong>Open walks</strong>
@@ -499,7 +499,7 @@
     </div>
   </dialog>
 
-  <!-- Owner Jobs Modal (owner dashboard) -->
+  <!-- Owner Jobs Modal -->
   <dialog id="ownerJobsModal">
     <div class="modal-head">
       <strong>My requests</strong>
@@ -507,7 +507,7 @@
     </div>
     <div class="modal-body">
       <p class="muted" style="font-size:13px">
-        Your jobs, with latest bid and number of bids. Click “View bids” to see all walkers.
+        Your jobs, with latest bid and number of bids. Click “View bids” to accept / reject / counter.
       </p>
       <div id="ownerJobsList" style="display:grid; gap:12px; margin-top:8px;"></div>
       <div id="ownerJobsEmpty" class="muted" style="margin-top:8px; display:none;">
@@ -525,12 +525,12 @@
 
   <script>
     // === CONFIG ===
-    // Put YOUR deployed Web App URL here:
-    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbyHeIIhWwtJ7HrAmrHfwMjXm4AXyNm1AzB1j8V4K9kffofXSe_vqoXx-R17zjHi6zefYg/exec";
+    // ⚠️ Set this to your Apps Script Web App URL:
+    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbyKdCDMWjuhsf2VygsYN-ZPHMw6B1E-DbKtV2aFizs2tReJH0krYex5dmCwDWMp8Jd_Gw/exec";
     const AUTH_TOKEN_KEY = "dogwalkr_auth_token";
     const PROFILE_KEY    = "dogwalkr_profile";
 
-    // ===== Global dialog helpers =====
+    // ===== Dialog helpers =====
     function supportsDialog(){
       try { return typeof HTMLDialogElement === 'function' && !!document.createElement('dialog').showModal; }
       catch (_){ return false; }
@@ -552,7 +552,6 @@
       } catch(_){}
     }
 
-    // Expose for header buttons
     window.openOwner    = () => { openDlg('ownerModal'); setDateMinToday(); prefillFormFromProfile('owner'); };
     window.closeOwner   = () => closeDlg('ownerModal');
     window.openWalker   = () => { openDlg('walkerModal'); prefillFormFromProfile('walker'); };
@@ -562,11 +561,8 @@
     window.openProfile  = () => { prefillProfileForm(); openDlg('profileModal'); };
     window.closeProfile = () => closeDlg('profileModal');
 
-    // Walker jobs “second page”
-    window.openJobs     = async () => { openDlg('jobsModal'); await refreshJobs(); };
-    window.closeJobs    = () => closeDlg('jobsModal');
-
-    // Owner jobs “second page”
+    window.openJobs       = async () => { openDlg('jobsModal'); await refreshJobs(); };
+    window.closeJobs      = () => closeDlg('jobsModal');
     window.openOwnerJobs  = async () => { openDlg('ownerJobsModal'); await refreshOwnerJobs(); };
     window.closeOwnerJobs = () => closeDlg('ownerJobsModal');
 
@@ -1015,14 +1011,83 @@
         return;
       }
 
-      const lines = bids.map(b => {
-        const price = b.price || '';
+      container.innerHTML = '';
+      bids.forEach(b => {
+        const row = document.createElement('div');
+        row.style.marginTop = '4px';
+        row.style.fontSize = '13px';
+        row.className = 'muted';
+
+        const textSpan = document.createElement('span');
+        const price = b.price || '?';
         const who   = b.walker_email || '';
-        const status= b.status || '';
+        const status= (b.status || '').toLowerCase();
         const msg   = b.message ? ` · "${b.message}"` : '';
-        return `• ${price} CHF · ${status} · ${who}${msg}`;
+        const counter = b.counter_price ? ` · Counter: ${b.counter_price} CHF` : '';
+        textSpan.textContent = `• ${price} CHF · ${status || 'pending'} · ${who}${msg}${counter}`;
+        row.appendChild(textSpan);
+
+        if (status === 'pending' || status === '') {
+          const acceptBtn = document.createElement('button');
+          acceptBtn.className = 'btn';
+          acceptBtn.style.marginLeft = '8px';
+          acceptBtn.textContent = 'Accept';
+          acceptBtn.addEventListener('click', () => ownerDecideBid(jobId, b.bid_id, 'accept'));
+
+          const rejectBtn = document.createElement('button');
+          rejectBtn.className = 'btn';
+          rejectBtn.style.marginLeft = '4px';
+          rejectBtn.textContent = 'Reject';
+          rejectBtn.addEventListener('click', () => ownerDecideBid(jobId, b.bid_id, 'reject'));
+
+          const counterBtn = document.createElement('button');
+          counterBtn.className = 'btn';
+          counterBtn.style.marginLeft = '4px';
+          counterBtn.textContent = 'Counter';
+          counterBtn.addEventListener('click', () => ownerDecideBid(jobId, b.bid_id, 'counter'));
+
+          row.appendChild(acceptBtn);
+          row.appendChild(rejectBtn);
+          row.appendChild(counterBtn);
+        }
+
+        container.appendChild(row);
       });
-      container.innerHTML = lines.join('<br>');
+    }
+
+    async function ownerDecideBid(jobId, bidId, decision){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Please sign in first.');
+        return;
+      }
+      let counterPrice = null;
+      if (decision === 'counter') {
+        counterPrice = window.prompt('Counter-offer price in CHF:', '');
+        if (counterPrice === null || counterPrice === '') return;
+      }
+
+      const res = await postForm({
+        action: 'owner_decide_bid',
+        token,
+        job_id: jobId,
+        bid_id: bidId,
+        decision,
+        counter_price: counterPrice
+      });
+
+      if (res && res.ok) {
+        if (decision === 'accept') {
+          showToast('Bid accepted.');
+        } else if (decision === 'reject') {
+          showToast('Bid rejected.');
+        } else {
+          showToast('Counter-offer sent.');
+        }
+        await refreshOwnerJobs();
+      } else {
+        showToast(res && res.error ? res.error : 'Could not update bid.');
+      }
     }
 
     // ===== Owner / Walker submit =====
