@@ -13,7 +13,7 @@
       --border:#e4ddd3;
       --text:#262626;
       --text-muted:#7a746d;
-      --accent:#0f766e;           /* teal-green */
+      --accent:#0f766e;
       --accent-soft:#e0f2f1;
       --accent-soft-border:#b2dfdb;
       --danger:#dc2626;
@@ -437,7 +437,6 @@
       .brand-name{font-size:16px;}
       .brand-tagline{font-size:11px;}
       .btn{font-size:12px;padding:7px 12px;}
-      .chip{font-size:11px;}
       h1{font-size:20px;}
     }
   </style>
@@ -606,18 +605,8 @@
             <input name="address" placeholder="Street, number">
           </div>
           <div>
-            <label>Experience (as walker)</label>
-            <input name="experience" placeholder="Beginner / Intermediate / Pro">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Rate expectation (per hour)</label>
-            <input name="rate" type="number" min="1" step="1" placeholder="25">
-          </div>
-          <div>
-            <label>Short bio</label>
-            <input name="bio" placeholder="I love dogs…">
+            <label>Short note (optional)</label>
+            <input name="bio" placeholder="Anything owners/walkers should know…">
           </div>
         </div>
         <button class="btn btn-primary" type="submit">Save profile</button>
@@ -791,16 +780,6 @@
             </select>
           </div>
         </div>
-        <div class="row">
-          <div>
-            <label>Availability</label>
-            <input name="availability" placeholder="Weekdays 17:00–20:00; Weekends">
-          </div>
-          <div>
-            <label>Rate expectation (per hour)</label>
-            <input name="rate" type="number" min="1" step="1" placeholder="25">
-          </div>
-        </div>
         <div>
           <label>About you</label>
           <textarea name="bio" placeholder="Short intro…"></textarea>
@@ -856,7 +835,7 @@
   <script>
     // ========= CONFIG =========
     // 👉 Put your Apps Script Web App URL here:
-    window.FORM_ENDPOINT_URL = "YOUR_WEB_APP_URL_HERE";   // <= REPLACE THIS
+    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbxRK9f1OwoPXOfryhdbkk-Q2aY42m3mFgL8_CsTVLCu2vqq3mS-XLc82_xUpWbrw08hBQ/exec";   // <= REPLACE THIS
     const AUTH_TOKEN_KEY = "igo_auth_token";
     const PROFILE_KEY    = "igo_profile";
 
@@ -1001,10 +980,8 @@
         if (map('phone') && prof.phone) map('phone').value = prof.phone;
         if (map('city')  && prof.city)  map('city').value  = prof.city;
         if (kind === 'walker'){
-          if (map('experience')  && prof.experience)  map('experience').value  = prof.experience;
-          if (map('rate')        && prof.rate)        map('rate').value        = prof.rate;
-          if (map('bio')         && prof.bio)         map('bio').value         = prof.bio;
-          if (map('availability')&& prof.availability)map('availability').value= prof.availability;
+          if (map('experience') && prof.experience) map('experience').value = prof.experience;
+          if (map('bio')        && prof.bio)        map('bio').value        = prof.bio;
         }
         if (kind === 'owner'){
           if (map('address') && prof.address) map('address').value = prof.address;
@@ -1018,7 +995,7 @@
         const form = document.getElementById('profileForm');
         if (!form) return;
         const map = (k) => form.querySelector(`[name="${k}"]`);
-        ['name','email','phone','address','city','pay_method','experience','rate','bio','role'].forEach(k=>{
+        ['name','email','phone','address','city','pay_method','experience','bio','role'].forEach(k=>{
           if (map(k) && prof[k]) map(k).value = prof[k];
         });
         const ownerBox = form.elements['is_owner'];
