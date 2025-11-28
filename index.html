@@ -131,6 +131,7 @@
       display:inline-flex;
       align-items:center;
       gap:6px;
+      flex-wrap:wrap;
     }
 
     main{
@@ -171,35 +172,6 @@
       color:var(--text-muted);
     }
 
-    .confidence-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      margin-top:8px;
-    }
-    .confidence-pill{
-      border-radius:var(--radius-sm);
-      border:1px solid var(--accent-soft-border);
-      background:var(--accent-soft);
-      padding:4px 10px;
-      font-size:11px;
-      color:#115e59;
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      white-space:nowrap;
-    }
-    .confidence-pill span{
-      font-size:13px;
-    }
-
-    .hero-cta-row{
-      margin-top:10px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-
     .hero-checklist{
       margin-top:8px;
       font-size:13px;
@@ -218,6 +190,42 @@
       top:0;
       font-size:12px;
       color:var(--accent);
+    }
+
+    .quote-block{
+      margin-top:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      background:rgba(255,255,255,0.7);
+      border:1px dashed rgba(148,163,184,0.6);
+      font-size:13px;
+      color:#374151;
+    }
+
+    .hero-cta-row{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .confidence-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:8px;
+    }
+    .confidence-pill{
+      border-radius:999px;
+      border:1px solid var(--accent-soft-border);
+      background:var(--accent-soft);
+      padding:4px 10px;
+      font-size:11px;
+      color:#115e59;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
     }
 
     .trust-line{
@@ -346,7 +354,7 @@
       margin:0;
     }
 
-    .jobs-list, .owner-jobs-list{
+    .jobs-list, .owner-jobs-list, .my-bids-list{
       display:grid;
       gap:10px;
     }
@@ -463,46 +471,101 @@
 
     <main>
       <section class="hero">
+        <!-- LEFT CARD: dynamic HUD (home / owner / walker) -->
         <div class="card card-soft">
-          <h1>Find a trusted person for your dog.</h1>
-          <p class="muted">
-            With igo, pet owners publish walk requests, and trusted locals can accept or bid.
-            No insurance — we just connect people in a calm, transparent way.
-          </p>
-          <ul class="hero-checklist">
-            <li>Sign in with a one-time code (no passwords).</li>
-            <li>Owners & walkers can be the same person.</li>
-            <li>Walkers in the same city are notified when a new walk is posted.</li>
-          </ul>
-          <div class="hero-cta-row">
-            <button class="btn btn-primary" onclick="openOwner()">Book a walk</button>
-            <button class="btn" onclick="openWalker()">Offer walks</button>
+          <!-- HOME VIEW -->
+          <div id="heroHome" class="hero-variant">
+            <h1>Find a trusted person for your dog.</h1>
+            <p class="muted">
+              With igo, pet owners publish walk requests, and trusted locals can accept or bid.
+              No insurance — we just connect people in a calm, transparent way.
+            </p>
+            <ul class="hero-checklist">
+              <li>Sign in with a one-time code (no passwords).</li>
+              <li>Owners & walkers can be the same person.</li>
+              <li>Walkers in the same city are notified when a new walk is posted.</li>
+            </ul>
+            <div class="hero-cta-row">
+              <button class="btn btn-primary" onclick="setView('owner'); openOwner();">Book a walk</button>
+              <button class="btn" onclick="setView('walker'); openWalker();">Offer walks</button>
+            </div>
+            <div class="quote-block">
+              “Dogs don’t care about apps. They care that the human at the other end of the leash is calm,
+              kind, and pays attention.” 🐾
+            </div>
+            <div class="confidence-row">
+              <div class="confidence-pill">🫧 Clean, simple interface</div>
+              <div class="confidence-pill">📍 Focused on your city</div>
+              <div class="confidence-pill">👀 You choose who you trust</div>
+            </div>
+            <div class="trust-line">
+              <div class="trust-icon">✓</div>
+              <span>igo does not provide insurance. We only help you find people — you stay in control.</span>
+            </div>
           </div>
-          <div class="confidence-row">
-            <div class="confidence-pill">
-              <span>🫧</span> Clean, simple interface
+
+          <!-- OWNER VIEW -->
+          <div id="heroOwner" class="hero-variant" style="display:none;">
+            <h1>For pet owners: clear info, your decision.</h1>
+            <p class="muted">
+              Post a walk with date, time, your city and a maximum price. Walkers can bid or accept directly.
+              You choose who feels safe for your dog.
+            </p>
+            <ul class="hero-checklist">
+              <li>Describe your dog honestly (size, temperament, special rules).</li>
+              <li>Pick someone whose profile, message and rating make you comfortable.</li>
+              <li>Start with short walks the first time you meet a new walker.</li>
+            </ul>
+            <div class="hero-cta-row">
+              <button class="btn btn-primary" onclick="openOwner()">Post a walk</button>
+              <button class="btn" onclick="openOwnerJobs()">View my walk requests</button>
             </div>
-            <div class="confidence-pill">
-              <span>📍</span> Focused on your city
+            <div class="quote-block">
+              “A good handover is everything: clear instructions, leash, harness, and a quick chat.
+              That’s where trust starts.”
             </div>
-            <div class="confidence-pill">
-              <span>👀</span> You choose who you trust
+            <div class="trust-line">
+              <div class="trust-icon">✓</div>
+              <span>Remember: igo is just a matching hub. You stay responsible for who you choose.</span>
             </div>
           </div>
-          <div class="trust-line">
-            <div class="trust-icon">✓</div>
-            <span>igo does not provide insurance. We only help you find people — you stay in control.</span>
+
+          <!-- WALKER VIEW -->
+          <div id="heroWalker" class="hero-variant" style="display:none;">
+            <h1>For walkers: turn walks into something serious.</h1>
+            <p class="muted">
+              Complete your profile, get notified when a walk appears in your city, and bid fairly.
+              Keep a history of the dogs you walked and what you earned.
+            </p>
+            <ul class="hero-checklist">
+              <li>Be clear in your profile: experience, comfort with sizes, and any limits.</li>
+              <li>Communicate with owners before the first walk: routes, rules, contact details.</li>
+              <li>Keep notes about each dog (what they like, how they react) — it makes you look pro.</li>
+            </ul>
+            <div class="hero-cta-row">
+              <button class="btn btn-primary" onclick="openJobs()">See open walks</button>
+              <button class="btn" onclick="openMyBids()">My bids & history</button>
+            </div>
+            <div class="quote-block">
+              “The best walkers aren’t the fastest. They’re the ones who notice when a dog is tired,
+              anxious, or excited — and adapt.”
+            </div>
+            <div class="trust-line">
+              <div class="trust-icon">✓</div>
+              <span>On igo, you’re an independent walker. No employment, no insurance from igo.</span>
+            </div>
           </div>
         </div>
 
+        <!-- RIGHT CARD: generic “how it works” -->
         <div class="card">
           <h2>How igo works</h2>
           <ol style="font-size:13px;padding-left:18px;margin-top:4px;color:var(--text-muted);">
             <li>Sign in with your email (we send a 6-digit code).</li>
             <li>Complete your profile and choose if you’re an owner, walker, or both.</li>
-            <li>Owners post walks with date, time, and max price.</li>
+            <li>Owners post walks with date, time, city and max price.</li>
             <li>Walkers in the same city get an email and can accept or bid.</li>
-            <li>Owners accept, reject, or send a counter-offer.</li>
+            <li>Owners accept, reject, or send a counter-offer; walkers see all their history in “My bids”.</li>
           </ol>
           <p class="muted" style="font-size:12px;margin-top:8px;">
             For testing, the code <b>555555</b> always works instead of the email code.
@@ -825,6 +888,22 @@
     </div>
   </dialog>
 
+  <!-- My Bids (walker history) -->
+  <dialog id="myBidsModal">
+    <div class="modal-head">
+      <span>My bids & walk history</span>
+      <button class="btn btn-ghost" onclick="closeMyBids()">Close</button>
+    </div>
+    <div class="modal-body">
+      <p class="muted" style="font-size:11px;margin-bottom:6px;">
+        Here you see every bid you ever placed on igo — including which ones were accepted,
+        countered, or rejected.
+      </p>
+      <div id="myBidsList" class="my-bids-list"></div>
+      <div id="myBidsEmpty" class="muted" style="font-size:13px;display:none;">No bids yet.</div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast">Saved.</div>
   <div id="debug">
     <b>Last server response</b><br/>
@@ -835,9 +914,24 @@
   <script>
     // ========= CONFIG =========
     // 👉 Put your Apps Script Web App URL here:
-    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbxRK9f1OwoPXOfryhdbkk-Q2aY42m3mFgL8_CsTVLCu2vqq3mS-XLc82_xUpWbrw08hBQ/exec";   // <= REPLACE THIS
+    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwgtZ2DkS5iZCM7rZ3YQq4nbeczUA8GnwtGh3oEi7VBvGuqQxNeSDiEpoCUVfbpubzF/exec";   // <= REPLACE THIS
     const AUTH_TOKEN_KEY = "igo_auth_token";
     const PROFILE_KEY    = "igo_profile";
+
+    let currentView = 'home'; // 'home' | 'owner' | 'walker'
+
+    function setView(view){
+      currentView = view;
+      const views = {
+        home: document.getElementById('heroHome'),
+        owner: document.getElementById('heroOwner'),
+        walker: document.getElementById('heroWalker')
+      };
+      Object.keys(views).forEach(k=>{
+        if (!views[k]) return;
+        views[k].style.display = (k === view) ? 'block' : 'none';
+      });
+    }
 
     // ========= Dialog helpers =========
     function supportsDialog(){
@@ -875,9 +969,11 @@
     function closeJobs(){ closeDlg('jobsModal'); }
     async function openOwnerJobs(){ openDlg('ownerJobsModal'); await refreshOwnerJobs(); }
     function closeOwnerJobs(){ closeDlg('ownerJobsModal'); }
+    async function openMyBids(){ openDlg('myBidsModal'); await refreshMyBids(); }
+    function closeMyBids(){ closeDlg('myBidsModal'); }
 
-    document.getElementById('btnOwner').onclick  = openOwner;
-    document.getElementById('btnWalker').onclick = openWalker;
+    document.getElementById('btnOwner').onclick  = () => { setView('owner'); openOwner(); };
+    document.getElementById('btnWalker').onclick = () => { setView('walker'); openWalker(); };
     document.getElementById('signinBtn').onclick = openSignin;
 
     // ========= Utils =========
@@ -947,24 +1043,26 @@
       chip.style.display      = 'inline-flex';
 
       const name = prof.name || prof.email || 'Account';
-      const parts = [name];
+      const parts = [`<span><b>${name}</b></span>`];
 
       if (isOwner) {
-        parts.push(`<button class="btn btn-ghost" type="button" onclick="openOwnerJobs()">My walks</button>`);
+        parts.push(`<button class="btn btn-ghost" type="button" onclick="setView('owner'); openOwnerJobs();">My walks</button>`);
       }
       if (isWalker) {
-        parts.push(`<button class="btn btn-ghost" type="button" onclick="openJobs()">Jobs</button>`);
+        parts.push(`<button class="btn btn-ghost" type="button" onclick="setView('walker'); openJobs();">Jobs</button>`);
+        parts.push(`<button class="btn btn-ghost" type="button" onclick="setView('walker'); openMyBids();">My bids</button>`);
       }
       parts.push(`<button class="btn btn-ghost" type="button" onclick="openProfile()">Profile</button>`);
       parts.push(`<button class="btn btn-ghost" type="button" onclick="signOut()">Sign out</button>`);
 
-      chip.innerHTML = parts.join(' · ');
+      chip.innerHTML = parts.join(' ');
     }
 
     function signOut(){
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(PROFILE_KEY);
       renderAuthUI();
+      setView('home');
       showToast('Signed out');
     }
 
@@ -998,7 +1096,7 @@
         ['name','email','phone','address','city','pay_method','experience','bio','role'].forEach(k=>{
           if (map(k) && prof[k]) map(k).value = prof[k];
         });
-        const ownerBox = form.elements['is_owner'];
+        const ownerBox  = form.elements['is_owner'];
         const walkerBox = form.elements['is_walker'];
         const { isOwner, isWalker } = computeRoleFlags(prof);
         if (ownerBox) ownerBox.checked = isOwner;
@@ -1434,6 +1532,116 @@
       }
     }
 
+    // ========= My bids (walker history) =========
+    async function refreshMyBids(){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Sign in first.');
+        closeMyBids();
+        openSignin();
+        return;
+      }
+
+      const listEl  = document.getElementById('myBidsList');
+      const emptyEl = document.getElementById('myBidsEmpty');
+      listEl.innerHTML = '<div class="muted" style="font-size:13px;">Loading…</div>';
+      emptyEl.style.display = 'none';
+
+      const res = await postForm({ action:'list_my_bids', token });
+      if (!res || !res.ok || !Array.isArray(res.bids)){
+        listEl.innerHTML = '<div class="muted" style="font-size:13px;">Could not load bids.</div>';
+        return;
+      }
+
+      const bids = res.bids;
+      listEl.innerHTML = '';
+      if (!bids.length){
+        emptyEl.style.display = 'block';
+        return;
+      }
+
+      // Show latest first
+      bids.sort((a,b)=>{
+        const ta = new Date(a.created_at || 0).getTime();
+        const tb = new Date(b.created_at || 0).getTime();
+        return tb - ta;
+      });
+
+      bids.forEach(b=>{
+        const card = document.createElement('div');
+        card.className = 'job-card';
+
+        const status = (b.status || '').toLowerCase();
+        const dogName = b.job_dog_name || 'Dog';
+        const dogSize = b.job_dog_size || '';
+        const city    = b.job_city || '';
+        const when    = (b.job_date || '') + (b.job_time ? (' · ' + b.job_time) : '');
+        const price   = b.price ? `${b.price} CHF` : '? CHF';
+        const assignedPrice = b.job_assigned_price ? `${b.job_assigned_price} CHF` : '';
+        const mode    = b.job_mode || 'bidding';
+        const owner   = b.job_owner_email || '';
+
+        let statusLabel = status || 'pending';
+        if (status === 'accepted') statusLabel = 'accepted (walk confirmed)';
+        if (status === 'rejected') statusLabel = 'rejected';
+        if (status === 'countered') statusLabel = 'counter-offer from owner';
+
+        const counterLine = b.counter_price ? `Counter-offer: ${b.counter_price} CHF` : '';
+        const historyLine = (status === 'accepted' && assignedPrice)
+          ? `You got: ${assignedPrice}`
+          : '';
+
+        card.innerHTML = `
+          <div class="job-header">
+            <div>
+              <div class="job-title">
+                ${dogName}${dogSize ? ' · ' + dogSize : ''}
+                ${status === 'accepted' ? '<span class="badge" style="margin-left:6px;">Completed / assigned</span>' : ''}
+              </div>
+              <div class="job-meta">${when || 'When: TBD'} · ${city || 'City not set'}</div>
+              <div class="job-meta">Mode: ${mode} · Your bid: ${price}</div>
+              <div class="job-meta">Status: ${statusLabel}</div>
+              ${counterLine ? `<div class="job-meta">${counterLine}</div>` : ''}
+              ${historyLine ? `<div class="job-meta">${historyLine}</div>` : ''}
+              ${owner ? `<div class="job-meta">Owner: ${owner}</div>` : ''}
+            </div>
+            <div data-actions="1"></div>
+          </div>
+        `;
+
+        const actions = card.querySelector('[data-actions]');
+        if (status === 'countered' && b.counter_price){
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-primary';
+          btn.textContent = 'Accept counter';
+          btn.addEventListener('click', ()=> walkerAcceptCounter(b.bid_id));
+          actions.appendChild(btn);
+        }
+
+        listEl.appendChild(card);
+      });
+    }
+
+    async function walkerAcceptCounter(bidId){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Sign in first.');
+        return;
+      }
+      const res = await postForm({
+        action:'walker_accept_counter',
+        token,
+        bid_id: bidId
+      });
+      if (res && res.ok){
+        showToast('Counter accepted.');
+        await refreshMyBids();
+        await refreshJobs();
+      } else {
+        showToast(res && res.error ? res.error : 'Could not accept counter.');
+      }
+    }
+
     // ========= Misc =========
     function setDateMinToday(){
       const el = document.getElementById('date_owner');
@@ -1447,6 +1655,7 @@
 
     (async function init(){
       console.log('[igo] Ready. Endpoint:', window.FORM_ENDPOINT_URL);
+      setView('home');
       renderAuthUI();
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (token){
