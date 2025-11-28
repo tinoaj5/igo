@@ -6,35 +6,43 @@
   <title>igo — trusted dog walking hub</title>
   <meta name="description" content="igo is a simple, trustworthy hub for connecting pet owners and local dog walkers." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🐶</text></svg>">
+
   <style>
     :root{
-      --bg:#faf6f0;
-      --bg-card:#ffffff;
-      --border:#e4ddd3;
-      --text:#262626;
-      --text-muted:#7a746d;
-      --accent:#0f766e;
-      --accent-soft:#e0f2f1;
-      --accent-soft-border:#b2dfdb;
-      --danger:#dc2626;
-      --radius-lg:18px;
+      --bg:#020617;               /* deep navy */
+      --bg-alt:#020617;
+      --bg-card:rgba(15,23,42,0.94);
+      --glass-border:rgba(148,163,184,0.35);
+      --border:rgba(51,65,85,0.8);
+      --text:#e5e7eb;
+      --text-muted:#9ca3af;
+      --accent:#22c55e;           /* neon-ish green */
+      --accent-soft:rgba(34,197,94,0.1);
+      --accent-soft-border:rgba(74,222,128,0.6);
+      --danger:#f97373;
+      --radius-lg:20px;
       --radius-sm:999px;
-      --shadow-soft:0 14px 35px rgba(15,23,42,0.10);
-      --shadow-light:0 6px 18px rgba(15,23,42,0.08);
+      --shadow-soft:0 22px 60px rgba(15,23,42,0.65);
+      --shadow-light:0 10px 30px rgba(15,23,42,0.4);
     }
 
     *{box-sizing:border-box;margin:0;padding:0;}
     body{
       font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      background:var(--bg);
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 0% 0%, #22c55e1a 0, transparent 40%),
+        radial-gradient(circle at 100% 0%, #38bdf81f 0, transparent 45%),
+        radial-gradient(circle at 50% 110%, #22c55e22 0, transparent 55%),
+        var(--bg);
       color:var(--text);
     }
-    a{color:var(--accent);text-decoration:none;}
+    a{color:#4ade80;text-decoration:none;}
 
     .page{
-      max-width:960px;
+      max-width:1024px;
       margin:0 auto;
-      padding:12px 14px 18px;
+      padding:14px 14px 22px;
     }
 
     header{
@@ -42,7 +50,7 @@
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      padding:4px 0 8px;
+      padding:6px 4px 10px;
     }
 
     .brand-wrap{
@@ -51,16 +59,18 @@
       align-items:center;
     }
     .brand-logo{
-      width:40px;height:40px;
-      border-radius:16px;
-      background:radial-gradient(circle at 30% 30%, #fef9c3, #0f766e);
+      width:46px;height:46px;
+      border-radius:18px;
+      background:
+        radial-gradient(circle at 25% 20%, #fef3c7 0, #f97316 40%, transparent 72%),
+        radial-gradient(circle at 80% 130%, #22c55e 0, #0f766e 60%);
       display:flex;
       align-items:center;
       justify-content:center;
-      box-shadow:var(--shadow-soft);
+      box-shadow:0 18px 50px rgba(15,23,42,0.6);
     }
     .brand-logo span{
-      font-size:22px;
+      font-size:24px;
     }
     .brand-text{
       display:flex;
@@ -69,8 +79,8 @@
     }
     .brand-name{
       font-weight:800;
-      letter-spacing:0.03em;
-      font-size:18px;
+      letter-spacing:0.06em;
+      font-size:19px;
       text-transform:uppercase;
     }
     .brand-tagline{
@@ -80,17 +90,17 @@
 
     .nav-actions{
       display:flex;
-      gap:6px;
+      gap:8px;
+      align-items:center;
       flex-wrap:wrap;
       justify-content:flex-end;
-      align-items:center;
     }
 
     .btn{
       border-radius:var(--radius-sm);
       border:1px solid var(--border);
-      background:#fff;
-      padding:8px 14px;
+      background:rgba(15,23,42,0.9);
+      padding:7px 14px;
       font-size:13px;
       font-weight:500;
       cursor:pointer;
@@ -98,9 +108,10 @@
       align-items:center;
       gap:6px;
       transition:background 0.15s, box-shadow 0.15s, transform 0.05s, border-color 0.15s;
+      color:var(--text);
     }
     .btn:hover{
-      background:#fef9f5;
+      background:#020617;
       box-shadow:var(--shadow-light);
       transform:translateY(-1px);
     }
@@ -109,60 +120,82 @@
       box-shadow:none;
     }
     .btn-primary{
-      background:var(--accent);
-      border-color:var(--accent);
-      color:#fefce8;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      border-color:#4ade80;
+      color:#052e16;
     }
     .btn-primary:hover{
-      background:#115e59;
-      box-shadow:0 10px 26px rgba(15,118,110,0.35);
+      background:linear-gradient(135deg,#4ade80,#22c55e);
+      box-shadow:0 16px 40px rgba(34,197,94,0.65);
+    }
+    .btn-outline{
+      background:transparent;
+      border-color:rgba(148,163,184,0.7);
     }
     .btn-ghost{
       background:transparent;
       border-color:transparent;
     }
 
-    .chip{
-      border-radius:var(--radius-sm);
-      border:1px solid var(--border);
-      padding:6px 11px;
-      font-size:12px;
-      background:#fff;
-      display:inline-flex;
+    .user-nav{
+      border-radius:20px;
+      border:1px solid rgba(148,163,184,0.35);
+      background:radial-gradient(circle at 0 0,rgba(148,163,184,0.18),transparent 50%);
+      padding:6px 12px;
+      display:flex;
       align-items:center;
-      gap:6px;
-      flex-wrap:wrap;
+      gap:10px;
+      font-size:13px;
+      box-shadow:0 14px 40px rgba(15,23,42,0.7);
+    }
+    .user-nav-name{
+      font-weight:600;
+      white-space:nowrap;
+    }
+    .dot{
+      opacity:.6;
+    }
+    .user-nav button{
+      padding:4px 8px;
+      font-size:12px;
+      border-radius:999px;
+      background:transparent;
+      border:1px solid transparent;
+    }
+    .user-nav button:hover{
+      border-color:rgba(148,163,184,0.9);
+      background:rgba(15,23,42,0.8);
     }
 
     main{
-      margin-top:8px;
+      margin-top:10px;
     }
 
     .hero{
       display:grid;
-      grid-template-columns:1.3fr 1fr;
+      grid-template-columns:1.4fr 1fr;
       gap:14px;
     }
 
     .card{
       background:var(--bg-card);
       border-radius:var(--radius-lg);
-      border:1px solid var(--border);
+      border:1px solid var(--glass-border);
       box-shadow:var(--shadow-soft);
       padding:18px 18px 16px;
+      backdrop-filter:blur(18px);
     }
     .card-soft{
-      background:linear-gradient(135deg, #fef9f3, #ecfdf5);
-      border-color:rgba(148,163,184,0.18);
+      background:radial-gradient(circle at 0 0,rgba(34,197,94,0.14),transparent 60%),var(--bg-card);
     }
 
     h1{
-      font-size:22px;
-      margin-bottom:6px;
+      font-size:24px;
+      margin-bottom:7px;
     }
     h2{
-      font-size:17px;
-      margin-bottom:6px;
+      font-size:18px;
+      margin-bottom:8px;
     }
     p{
       font-size:14px;
@@ -192,18 +225,8 @@
       color:var(--accent);
     }
 
-    .quote-block{
-      margin-top:8px;
-      padding:8px 10px;
-      border-radius:12px;
-      background:rgba(255,255,255,0.7);
-      border:1px dashed rgba(148,163,184,0.6);
-      font-size:13px;
-      color:#374151;
-    }
-
     .hero-cta-row{
-      margin-top:10px;
+      margin-top:12px;
       display:flex;
       flex-wrap:wrap;
       gap:8px;
@@ -213,15 +236,15 @@
       display:flex;
       flex-wrap:wrap;
       gap:6px;
-      margin-top:8px;
+      margin-top:10px;
     }
     .confidence-pill{
-      border-radius:999px;
+      border-radius:var(--radius-sm);
       border:1px solid var(--accent-soft-border);
       background:var(--accent-soft);
       padding:4px 10px;
       font-size:11px;
-      color:#115e59;
+      color:#bbf7d0;
       display:inline-flex;
       align-items:center;
       gap:6px;
@@ -237,14 +260,42 @@
       margin-top:10px;
     }
     .trust-icon{
-      width:16px;height:16px;
+      width:18px;height:18px;
       border-radius:50%;
-      background:#dcfce7;
+      background:#022c22;
+      border:1px solid #22c55e;
       display:flex;
       align-items:center;
       justify-content:center;
       font-size:11px;
-      color:#166534;
+      color:#86efac;
+    }
+
+    .side-card-upper{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:flex-start;
+      margin-bottom:6px;
+    }
+    .side-pill{
+      font-size:11px;
+      color:var(--text-muted);
+      padding:4px 9px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.6);
+      background:rgba(15,23,42,0.75);
+    }
+    .side-quote{
+      font-size:12px;
+      color:var(--text-muted);
+      margin-top:6px;
+    }
+    .steps{
+      font-size:12px;
+      color:var(--text-muted);
+      padding-left:16px;
+      margin-top:4px;
     }
 
     footer{
@@ -260,13 +311,16 @@
     dialog{
       width:min(480px, 92vw);
       border-radius:var(--radius-lg);
-      border:1px solid var(--border);
+      border:1px solid var(--glass-border);
       padding:0;
       box-shadow:var(--shadow-soft);
+      background:var(--bg-card);
+      color:var(--text);
+      backdrop-filter:blur(18px);
     }
     dialog::backdrop{
-      background:rgba(15,23,42,0.23);
-      backdrop-filter:blur(4px);
+      background:rgba(15,23,42,0.6);
+      backdrop-filter:blur(6px);
     }
     .modal-head{
       padding:10px 16px;
@@ -282,6 +336,7 @@
       padding:14px 16px 16px;
       max-height:70vh;
       overflow:auto;
+      font-size:13px;
     }
 
     form{
@@ -292,7 +347,7 @@
     label{
       font-size:12px;
       font-weight:600;
-      color:#4b5563;
+      color:#e5e7eb;
       display:block;
       margin-bottom:3px;
     }
@@ -303,12 +358,16 @@
       padding:8px 10px;
       font-size:13px;
       outline:none;
-      background:#fdfaf7;
+      background:#020617;
+      color:var(--text);
+    }
+    input::placeholder,textarea::placeholder{
+      color:#6b7280;
     }
     input:focus, select:focus, textarea:focus{
-      border-color:var(--accent);
-      box-shadow:0 0 0 1px var(--accent-soft-border);
-      background:#ffffff;
+      border-color:#4ade80;
+      box-shadow:0 0 0 1px rgba(74,222,128,0.4);
+      background:#020617;
     }
     textarea{
       min-height:80px;
@@ -344,7 +403,7 @@
       gap:4px;
       font-size:12px;
       color:var(--text-muted);
-      background:#fdfaf7;
+      background:#020617;
       border-radius:var(--radius-sm);
       border:1px solid var(--border);
       padding:4px 8px;
@@ -354,7 +413,7 @@
       margin:0;
     }
 
-    .jobs-list, .owner-jobs-list, .my-bids-list{
+    .jobs-list,.owner-jobs-list,.my-bids-list{
       display:grid;
       gap:10px;
     }
@@ -362,7 +421,7 @@
       border-radius:14px;
       border:1px solid var(--border);
       padding:10px 10px 8px;
-      background:#fff;
+      background:#020617;
     }
     .job-header{
       display:flex;
@@ -390,7 +449,7 @@
       font-size:11px;
       border:1px solid var(--accent-soft-border);
       background:var(--accent-soft);
-      color:#115e59;
+      color:#bbf7d0;
     }
 
     .toast{
@@ -398,14 +457,15 @@
       bottom:12px;
       left:50%;
       transform:translateX(-50%);
-      background:#111827;
-      color:#f9fafb;
+      background:#020617;
+      color:#e5e7eb;
       font-size:12px;
       padding:7px 14px;
       border-radius:999px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.25);
+      box-shadow:0 12px 32px rgba(0,0,0,0.6);
       display:none;
       z-index:9999;
+      border:1px solid rgba(148,163,184,0.5);
     }
 
     #debug{
@@ -416,12 +476,13 @@
       max-height:40vh;
       overflow:auto;
       font:11px/1.4 ui-monospace,monospace;
-      background:#111827;
+      background:#020617;
       color:#e5e7eb;
       padding:6px 8px;
       border-radius:10px;
-      box-shadow:0 8px 22px rgba(0,0,0,0.4);
+      box-shadow:0 8px 22px rgba(0,0,0,0.8);
       display:none;
+      border:1px solid rgba(148,163,184,0.6);
     }
     #debug b{color:#a5f3fc;}
     #debug small{opacity:.8;}
@@ -439,12 +500,17 @@
       .row{
         grid-template-columns:1fr;
       }
+      .user-nav{
+        width:100%;
+        justify-content:flex-start;
+        flex-wrap:wrap;
+      }
     }
 
     @media (max-width:480px){
-      .brand-name{font-size:16px;}
+      .brand-name{font-size:17px;}
       .brand-tagline{font-size:11px;}
-      .btn{font-size:12px;padding:7px 12px;}
+      .btn{font-size:12px;padding:6px 11px;}
       h1{font-size:20px;}
     }
   </style>
@@ -457,118 +523,69 @@
           <span>🐶</span>
         </div>
         <div class="brand-text">
-          <div class="brand-name">igo</div>
+          <div class="brand-name">IGO</div>
           <div class="brand-tagline">A calm hub for pet owners & walkers.</div>
         </div>
       </div>
       <div class="nav-actions">
-        <button class="btn" id="btnWalker">I’m a walker</button>
-        <button class="btn btn-primary" id="btnOwner">I’m a pet owner</button>
         <button class="btn btn-ghost" id="signinBtn">Sign in</button>
-        <div id="userChip" class="chip" style="display:none;"></div>
+        <div id="userChip" class="user-nav" style="display:none;"></div>
       </div>
     </header>
 
     <main>
       <section class="hero">
-        <!-- LEFT CARD: dynamic HUD (home / owner / walker) -->
+        <!-- LEFT: main copy -->
         <div class="card card-soft">
-          <!-- HOME VIEW -->
-          <div id="heroHome" class="hero-variant">
-            <h1>Find a trusted person for your dog.</h1>
-            <p class="muted">
-              With igo, pet owners publish walk requests, and trusted locals can accept or bid.
-              No insurance — we just connect people in a calm, transparent way.
-            </p>
-            <ul class="hero-checklist">
-              <li>Sign in with a one-time code (no passwords).</li>
-              <li>Owners & walkers can be the same person.</li>
-              <li>Walkers in the same city are notified when a new walk is posted.</li>
-            </ul>
-            <div class="hero-cta-row">
-              <button class="btn btn-primary" onclick="setView('owner'); openOwner();">Book a walk</button>
-              <button class="btn" onclick="setView('walker'); openWalker();">Offer walks</button>
-            </div>
-            <div class="quote-block">
-              “Dogs don’t care about apps. They care that the human at the other end of the leash is calm,
-              kind, and pays attention.” 🐾
-            </div>
-            <div class="confidence-row">
-              <div class="confidence-pill">🫧 Clean, simple interface</div>
-              <div class="confidence-pill">📍 Focused on your city</div>
-              <div class="confidence-pill">👀 You choose who you trust</div>
-            </div>
-            <div class="trust-line">
-              <div class="trust-icon">✓</div>
-              <span>igo does not provide insurance. We only help you find people — you stay in control.</span>
-            </div>
+          <h1>Find a trusted person for your dog.</h1>
+          <p class="muted">
+            With igo, pet owners publish walk requests and trusted locals can accept or bid.
+            No insurance — igo only connects people, you stay in control.
+          </p>
+          <ul class="hero-checklist">
+            <li>Sign in with a one-time code (no passwords).</li>
+            <li>Owners & walkers can be the same person.</li>
+            <li>Walkers in the same city are notified when a new walk is posted.</li>
+          </ul>
+
+          <div class="hero-cta-row">
+            <button class="btn btn-primary" type="button" onclick="openOwner()">Book a walk</button>
+            <button class="btn btn-outline" type="button" onclick="openJobs()">See open walks</button>
+            <button class="btn btn-ghost" type="button" onclick="openMyBids()">My bids</button>
           </div>
 
-          <!-- OWNER VIEW -->
-          <div id="heroOwner" class="hero-variant" style="display:none;">
-            <h1>For pet owners: clear info, your decision.</h1>
-            <p class="muted">
-              Post a walk with date, time, your city and a maximum price. Walkers can bid or accept directly.
-              You choose who feels safe for your dog.
-            </p>
-            <ul class="hero-checklist">
-              <li>Describe your dog honestly (size, temperament, special rules).</li>
-              <li>Pick someone whose profile, message and rating make you comfortable.</li>
-              <li>Start with short walks the first time you meet a new walker.</li>
-            </ul>
-            <div class="hero-cta-row">
-              <button class="btn btn-primary" onclick="openOwner()">Post a walk</button>
-              <button class="btn" onclick="openOwnerJobs()">View my walk requests</button>
-            </div>
-            <div class="quote-block">
-              “A good handover is everything: clear instructions, leash, harness, and a quick chat.
-              That’s where trust starts.”
-            </div>
-            <div class="trust-line">
-              <div class="trust-icon">✓</div>
-              <span>Remember: igo is just a matching hub. You stay responsible for who you choose.</span>
-            </div>
+          <div class="confidence-row">
+            <div class="confidence-pill">🫧 Clean, simple interface</div>
+            <div class="confidence-pill">📍 Focused on your city</div>
+            <div class="confidence-pill">👀 You choose who you trust</div>
           </div>
 
-          <!-- WALKER VIEW -->
-          <div id="heroWalker" class="hero-variant" style="display:none;">
-            <h1>For walkers: turn walks into something serious.</h1>
-            <p class="muted">
-              Complete your profile, get notified when a walk appears in your city, and bid fairly.
-              Keep a history of the dogs you walked and what you earned.
-            </p>
-            <ul class="hero-checklist">
-              <li>Be clear in your profile: experience, comfort with sizes, and any limits.</li>
-              <li>Communicate with owners before the first walk: routes, rules, contact details.</li>
-              <li>Keep notes about each dog (what they like, how they react) — it makes you look pro.</li>
-            </ul>
-            <div class="hero-cta-row">
-              <button class="btn btn-primary" onclick="openJobs()">See open walks</button>
-              <button class="btn" onclick="openMyBids()">My bids & history</button>
-            </div>
-            <div class="quote-block">
-              “The best walkers aren’t the fastest. They’re the ones who notice when a dog is tired,
-              anxious, or excited — and adapt.”
-            </div>
-            <div class="trust-line">
-              <div class="trust-icon">✓</div>
-              <span>On igo, you’re an independent walker. No employment, no insurance from igo.</span>
-            </div>
+          <div class="trust-line">
+            <div class="trust-icon">✓</div>
+            <span>igo does not provide insurance. We only help you find people — you stay responsible for your dog.</span>
           </div>
         </div>
 
-        <!-- RIGHT CARD: generic “how it works” -->
+        <!-- RIGHT: how it works + quote -->
         <div class="card">
-          <h2>How igo works</h2>
-          <ol style="font-size:13px;padding-left:18px;margin-top:4px;color:var(--text-muted);">
-            <li>Sign in with your email (we send a 6-digit code).</li>
-            <li>Complete your profile and choose if you’re an owner, walker, or both.</li>
-            <li>Owners post walks with date, time, city and max price.</li>
-            <li>Walkers in the same city get an email and can accept or bid.</li>
-            <li>Owners accept, reject, or send a counter-offer; walkers see all their history in “My bids”.</li>
-          </ol>
-          <p class="muted" style="font-size:12px;margin-top:8px;">
-            For testing, the code <b>555555</b> always works instead of the email code.
+          <div class="side-card-upper">
+            <div>
+              <h2>How igo works</h2>
+              <ol class="steps">
+                <li>Sign in with your email (we send a 6-digit code).</li>
+                <li>Fill your profile and choose if you’re an owner, a walker, or both.</li>
+                <li>Owners post walks with date, time, city and max price.</li>
+                <li>Walkers in the same city get an email and can accept or bid.</li>
+                <li>Owners accept, reject, or send a counter-offer.</li>
+              </ol>
+            </div>
+            <div class="side-pill">
+              <span style="font-size:11px;">For testing, the code <b>555555</b> always works.</span>
+            </div>
+          </div>
+          <p class="side-quote">
+            “Dogs don’t care about apps. They care that the human at the other end of the leash is calm,
+            kind, and paying attention.” 🐾
           </p>
         </div>
       </section>
@@ -594,7 +611,7 @@
         </div>
         <button class="btn btn-primary" type="submit">Send code</button>
         <p class="muted" style="font-size:11px;">
-          We’ll send a 6-digit code to your email. For testing, you can just enter <b>555555</b> instead of waiting.
+          We’ll send a 6-digit code to your email. For testing, you can just enter <b>555555</b>.
         </p>
       </form>
 
@@ -888,7 +905,7 @@
     </div>
   </dialog>
 
-  <!-- My Bids (walker history) -->
+  <!-- My Bids Modal -->
   <dialog id="myBidsModal">
     <div class="modal-head">
       <span>My bids & walk history</span>
@@ -896,8 +913,7 @@
     </div>
     <div class="modal-body">
       <p class="muted" style="font-size:11px;margin-bottom:6px;">
-        Here you see every bid you ever placed on igo — including which ones were accepted,
-        countered, or rejected.
+        Every bid you ever placed on igo — including which ones were accepted, countered, or rejected.
       </p>
       <div id="myBidsList" class="my-bids-list"></div>
       <div id="myBidsEmpty" class="muted" style="font-size:13px;display:none;">No bids yet.</div>
@@ -914,24 +930,9 @@
   <script>
     // ========= CONFIG =========
     // 👉 Put your Apps Script Web App URL here:
-    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwgtZ2DkS5iZCM7rZ3YQq4nbeczUA8GnwtGh3oEi7VBvGuqQxNeSDiEpoCUVfbpubzF/exec";   // <= REPLACE THIS
+    window.FORM_ENDPOINT_URL = "YOUR_WEB_APP_URL_HERE";   // <= REPLACE THIS
     const AUTH_TOKEN_KEY = "igo_auth_token";
     const PROFILE_KEY    = "igo_profile";
-
-    let currentView = 'home'; // 'home' | 'owner' | 'walker'
-
-    function setView(view){
-      currentView = view;
-      const views = {
-        home: document.getElementById('heroHome'),
-        owner: document.getElementById('heroOwner'),
-        walker: document.getElementById('heroWalker')
-      };
-      Object.keys(views).forEach(k=>{
-        if (!views[k]) return;
-        views[k].style.display = (k === view) ? 'block' : 'none';
-      });
-    }
 
     // ========= Dialog helpers =========
     function supportsDialog(){
@@ -963,8 +964,6 @@
     function closeWalker(){ closeDlg('walkerModal'); }
     function openSignin(){ openDlg('signinModal'); }
     function closeSignin(){ closeDlg('signinModal'); }
-    function openProfile(){ prefillProfileForm(); openDlg('profileModal'); }
-    function closeProfile(){ closeDlg('profileModal'); }
     async function openJobs(){ openDlg('jobsModal'); await refreshJobs(); }
     function closeJobs(){ closeDlg('jobsModal'); }
     async function openOwnerJobs(){ openDlg('ownerJobsModal'); await refreshOwnerJobs(); }
@@ -972,8 +971,6 @@
     async function openMyBids(){ openDlg('myBidsModal'); await refreshMyBids(); }
     function closeMyBids(){ closeDlg('myBidsModal'); }
 
-    document.getElementById('btnOwner').onclick  = () => { setView('owner'); openOwner(); };
-    document.getElementById('btnWalker').onclick = () => { setView('walker'); openWalker(); };
     document.getElementById('signinBtn').onclick = openSignin;
 
     // ========= Utils =========
@@ -1040,20 +1037,20 @@
 
       const { isOwner, isWalker } = computeRoleFlags(prof);
       signinBtn.style.display = 'none';
-      chip.style.display      = 'inline-flex';
+      chip.style.display      = 'flex';
 
       const name = prof.name || prof.email || 'Account';
-      const parts = [`<span><b>${name}</b></span>`];
 
+      // Always show My bids (so it's easy to find), My walks only if owner.
+      const parts = [];
+      parts.push(`<span class="user-nav-name">${name}</span>`);
       if (isOwner) {
-        parts.push(`<button class="btn btn-ghost" type="button" onclick="setView('owner'); openOwnerJobs();">My walks</button>`);
+        parts.push(`<span class="dot">·</span><button type="button" onclick="openOwnerJobs()">My walks</button>`);
       }
-      if (isWalker) {
-        parts.push(`<button class="btn btn-ghost" type="button" onclick="setView('walker'); openJobs();">Jobs</button>`);
-        parts.push(`<button class="btn btn-ghost" type="button" onclick="setView('walker'); openMyBids();">My bids</button>`);
-      }
-      parts.push(`<button class="btn btn-ghost" type="button" onclick="openProfile()">Profile</button>`);
-      parts.push(`<button class="btn btn-ghost" type="button" onclick="signOut()">Sign out</button>`);
+      parts.push(`<span class="dot">·</span><button type="button" onclick="openJobs()">Jobs</button>`);
+      parts.push(`<span class="dot">·</span><button type="button" onclick="openMyBids()">My bids</button>`);
+      parts.push(`<span class="dot">·</span><button type="button" onclick="openProfile()">Profile</button>`);
+      parts.push(`<span class="dot">·</span><button type="button" onclick="signOut()">Sign out</button>`);
 
       chip.innerHTML = parts.join(' ');
     }
@@ -1062,7 +1059,6 @@
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(PROFILE_KEY);
       renderAuthUI();
-      setView('home');
       showToast('Signed out');
     }
 
@@ -1151,6 +1147,11 @@
         showToast('Could not save profile.');
       }
     });
+
+    function openProfile(){
+      prefillProfileForm();
+      openDlg('profileModal');
+    }
 
     // ========= Signin & code verify =========
     document.getElementById('signinForm').addEventListener('submit', async (e)=>{
@@ -1560,7 +1561,6 @@
         return;
       }
 
-      // Show latest first
       bids.sort((a,b)=>{
         const ta = new Date(a.created_at || 0).getTime();
         const tb = new Date(b.created_at || 0).getTime();
@@ -1655,7 +1655,6 @@
 
     (async function init(){
       console.log('[igo] Ready. Endpoint:', window.FORM_ENDPOINT_URL);
-      setView('home');
       renderAuthUI();
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (token){
