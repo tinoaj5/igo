@@ -4,237 +4,422 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DogWalkr — Switzerland</title>
-  <meta name="description" content="Book dog walks in Switzerland. OTP login, profiles, and a simple marketplace for dog walking." />
+  <meta name="description" content="Simple marketplace for dog walking in Switzerland. Owners post walks, walkers bid or accept." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🐾</text></svg>">
   <style>
     :root{
-      --bg:#0b0f14;
-      --card:#0f1722cc;
-      --text:#e8f0ff;
-      --text-dim:#b7c2d6;
-      --brand:#7cc6ff;
-      --shadow:0 10px 30px rgba(0,0,0,.35);
-      --ring:0 0 0 2px rgba(124,198,255,.35);
-      --radius:18px;
+      --bg:#f3f4f6;
+      --bg-card:#ffffff;
+      --border:#e5e7eb;
+      --text:#111827;
+      --text-muted:#6b7280;
+      --accent:#2563eb;
+      --accent-soft:#dbeafe;
+      --accent-soft-border:#bfdbfe;
+      --radius:16px;
+      --shadow:0 10px 30px rgba(15,23,42,0.12);
     }
-    *{box-sizing:border-box}
+    *{box-sizing:border-box;margin:0;padding:0;}
     body{
-      margin:0;
-      font:16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
       color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 10% 10%, #162030, transparent 50%),
-        radial-gradient(800px 600px at 100% 0%, #1a2740, transparent 40%),
-        var(--bg);
     }
-    a{color:var(--brand)}
-    .wrap{max-width:1080px; margin:0 auto; padding:28px}
+    a{color:var(--accent);text-decoration:none;}
+    .page{
+      max-width:960px;
+      margin:0 auto;
+      padding:16px;
+    }
     header{
-      display:flex; align-items:center; justify-content:space-between; gap:16px;
-      padding:10px 14px;
-      background:linear-gradient(180deg,rgba(255,255,255,.03),transparent);
-      border-radius:var(--radius);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 0 4px;
     }
-    .brand{display:flex; align-items:center; gap:12px; font-weight:800}
-    .logo{
-      width:36px; height:36px; display:grid; place-items:center;
-      border-radius:12px;
-      background:linear-gradient(135deg, #7cc6ff 0%, #b7ffcc 100%);
-      box-shadow:var(--shadow);
-      color:#001428;
-      font-size:20px;
-    }
-    nav{display:flex; gap:12px; align-items:center}
-    .btn{
-      appearance:none; border:0;
-      background:linear-gradient(180deg, #122033, #0f1826);
-      color:var(--text);
-      padding:10px 14px;
-      border-radius:14px;
-      cursor:pointer;
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:8px;
       font-weight:700;
-      box-shadow:var(--shadow);
-      font-size:14px;
     }
-    .btn:hover{filter:brightness(1.06)}
-    .btn.primary{
-      background:linear-gradient(180deg, #80d0ff, #66a8ff);
-      color:#021326;
+    .logo{
+      width:34px;height:34px;
+      border-radius:999px;
+      background:#1d4ed8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:20px;
+      box-shadow:var(--shadow);
+    }
+    .tagline{
+      font-size:12px;
+      color:var(--text-muted);
+    }
+    .nav-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .btn{
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#ffffff;
+      padding:8px 14px;
+      font-size:14px;
+      font-weight:500;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      transition:background 0.15s, box-shadow 0.15s, transform 0.05s;
+    }
+    .btn:hover{
+      background:#f9fafb;
+      box-shadow:0 4px 12px rgba(15,23,42,0.08);
+      transform:translateY(-1px);
+    }
+    .btn:active{
+      transform:translateY(0);
+      box-shadow:none;
+    }
+    .btn-primary{
+      background:var(--accent);
+      border-color:var(--accent);
+      color:#fff;
+    }
+    .btn-primary:hover{
+      background:#1d4ed8;
+      box-shadow:0 6px 18px rgba(37,99,235,0.28);
+    }
+    .btn-ghost{
+      background:transparent;
+    }
+    .chip{
+      border-radius:999px;
+      border:1px solid var(--border);
+      padding:6px 12px;
+      font-size:13px;
+      background:#ffffff;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
     }
     .hero{
+      margin-top:16px;
       display:grid;
       grid-template-columns:1.2fr 1fr;
-      gap:24px;
-      margin:36px 0;
+      gap:16px;
     }
     .card{
-      background:var(--card);
-      border:1px solid #213149;
+      background:var(--bg-card);
       border-radius:var(--radius);
+      border:1px solid var(--border);
       box-shadow:var(--shadow);
-      padding:24px;
+      padding:18px 18px 16px;
+    }
+    h1{
+      font-size:22px;
+      margin-bottom:6px;
+    }
+    h2{
+      font-size:18px;
+      margin-bottom:6px;
+    }
+    p{
+      font-size:14px;
+      margin-bottom:6px;
+    }
+    .muted{color:var(--text-muted);}
+    .pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:6px;
     }
     .pill{
-      display:inline-flex; gap:8px; align-items:center;
-      border:1px solid #213149;
-      background:#0d1522;
-      padding:6px 10px;
       border-radius:999px;
+      padding:4px 10px;
+      background:#f9fafb;
+      border:1px solid var(--border);
       font-size:12px;
-      color:#c2d2ec;
+      color:var(--text-muted);
     }
-    .muted{color:var(--text-dim)}
+
     footer{
-      margin:42px 0 8px;
+      margin:24px 0 6px;
       display:flex;
       justify-content:space-between;
-      color:var(--text-dim);
+      font-size:12px;
+      color:var(--text-muted);
+      flex-wrap:wrap;
+      gap:6px;
     }
+
     dialog{
-      width:min(600px, 92vw);
-      border:1px solid #253552;
-      background:#0c1320;
+      width:min(480px, 92vw);
       border-radius:18px;
-      color:#e9f2ff;
+      border:1px solid var(--border);
+      padding:0;
       box-shadow:var(--shadow);
     }
     dialog::backdrop{
-      background:rgba(1,5,12,.6);
-      backdrop-filter:blur(3px);
+      background:rgba(15,23,42,0.25);
+      backdrop-filter:blur(4px);
     }
     .modal-head{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:14px 16px;
-      border-bottom:1px solid #1d2a41;
+      padding:12px 16px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size:15px;
+      font-weight:600;
     }
-    .modal-body{padding:16px}
-    form{display:grid; gap:12px}
-    label{font-size:13px; color:#c7d4ea}
-    input,select,textarea{
+    .modal-body{
+      padding:14px 16px 16px;
+      max-height:70vh;
+      overflow:auto;
+    }
+    form{
+      display:grid;
+      gap:10px;
+      font-size:13px;
+    }
+    label{
+      font-size:13px;
+      font-weight:500;
+      color:#374151;
+      display:block;
+      margin-bottom:2px;
+    }
+    input, select, textarea{
       width:100%;
-      padding:12px;
-      border-radius:12px;
-      background:#0a111c;
-      color:#e9f2ff;
-      border:1px solid #20304a;
+      border-radius:10px;
+      border:1px solid var(--border);
+      padding:8px 10px;
+      font-size:13px;
       outline:none;
+      background:#f9fafb;
     }
     input:focus, select:focus, textarea:focus{
-      box-shadow:var(--ring);
-      border-color:#3a5a86;
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px var(--accent-soft-border);
+      background:#ffffff;
     }
-    textarea{min-height:92px; resize:vertical}
-    .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-    .terms{
-      display:flex; gap:10px; align-items:flex-start;
-      font-size:13px; color:#c9d7ee;
+    textarea{
+      min-height:80px;
+      resize:vertical;
     }
+    .row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .inline-check{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-size:13px;
+      color:var(--text-muted);
+    }
+    .role-checkboxes{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:4px;
+    }
+    .checkbox-inline{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      font-size:13px;
+      color:var(--text-muted);
+      background:#f9fafb;
+      border-radius:999px;
+      border:1px solid var(--border);
+      padding:4px 8px;
+    }
+    .checkbox-inline input{
+      width:auto;
+      margin:0;
+    }
+
     .toast{
       position:fixed;
-      top:18px; right:18px;
-      background:linear-gradient(180deg,#122033,#0f1826);
-      border:1px solid #22324c;
-      color:#e9f2ff;
-      padding:10px 14px;
-      border-radius:12px;
-      box-shadow:var(--shadow);
+      bottom:12px;
+      left:50%;
+      transform:translateX(-50%);
+      background:#111827;
+      color:#f9fafb;
+      font-size:13px;
+      padding:8px 14px;
+      border-radius:999px;
+      box-shadow:0 8px 24px rgba(0,0,0,0.25);
       display:none;
-      z-index:99999;
+      z-index:9999;
     }
+
     #debug{
       position:fixed;
-      left:12px; bottom:12px;
-      background:#0c1320;
-      border:1px solid #253552;
-      border-radius:10px;
-      padding:8px 10px;
-      max-width:46vw;
+      right:8px;
+      bottom:8px;
+      max-width:60vw;
       max-height:40vh;
       overflow:auto;
-      font:12px/1.4 ui-monospace,consolas,monaco;
-      color:#bfe;
-      box-shadow:var(--shadow);
+      font:11px/1.4 ui-monospace,monospace;
+      background:#111827;
+      color:#e5e7eb;
+      padding:6px 8px;
+      border-radius:10px;
+      box-shadow:0 8px 22px rgba(0,0,0,0.4);
+      display:none;
     }
-    #debug b{color:#9cf}
-    #debug small{opacity:.8}
-    #debug pre{white-space:pre-wrap;word-break:break-word}
-    @media (max-width:900px){
-      .hero{grid-template-columns:1fr}
-      .row{grid-template-columns:1fr}
-      #debug{max-width:86vw}
+    #debug b{color:#bfdbfe;}
+    #debug small{opacity:.8;}
+    #debug pre{white-space:pre-wrap;word-break:break-word;}
+
+    .jobs-list, .owner-jobs-list{
+      display:grid;
+      gap:10px;
+    }
+    .job-card{
+      border-radius:12px;
+      border:1px solid var(--border);
+      padding:10px 10px 8px;
+      background:#ffffff;
+    }
+    .job-header{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:flex-start;
+    }
+    .job-title{
+      font-size:14px;
+      font-weight:600;
+    }
+    .job-meta{
+      font-size:12px;
+      color:var(--text-muted);
+    }
+    .job-notes{
+      font-size:12px;
+      margin-top:4px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      border:1px solid var(--accent-soft-border);
+      background:var(--accent-soft);
+      color:#1d4ed8;
+    }
+
+    @media (max-width:800px){
+      .hero{
+        grid-template-columns:1fr;
+      }
+      header{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .nav-actions{
+        justify-content:flex-start;
+      }
+      .row{
+        grid-template-columns:1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="page">
     <header>
-      <div class="brand">
-        <div class="logo">🐾</div>
-        <div>DogWalkr — Switzerland</div>
+      <div>
+        <div class="brand">
+          <div class="logo">🐾</div>
+          <div>DogWalkr</div>
+        </div>
+        <div class="tagline">Simple dog walking marketplace in Switzerland.</div>
       </div>
-      <nav>
-        <button class="btn" id="btnWalker" onclick="openWalker()">Become a Walker</button>
-        <button class="btn primary" id="btnOwner" onclick="openOwner()">Book a Walk</button>
-        <button class="btn" id="signinBtn" onclick="openSignin()">Sign in</button>
-        <div id="userChip" style="display:none" class="pill"></div>
-      </nav>
+      <div class="nav-actions">
+        <button class="btn" id="btnWalker">Walker</button>
+        <button class="btn btn-primary" id="btnOwner">Owner</button>
+        <button class="btn btn-ghost" id="signinBtn">Sign in</button>
+        <div id="userChip" class="chip" style="display:none;"></div>
+      </div>
     </header>
 
-    <section class="hero">
-      <div class="card">
-        <h1>Fast dog walking, easy scheduling.</h1>
-        <p class="muted">Create an account once. We’ll auto-fill your info each time.</p>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px">
-          <span class="pill">📍 Switzerland</span>
-          <span class="pill">⏱️ 30–90 min walks</span>
-          <span class="pill">⭐ Two-way ratings (later)</span>
+    <main>
+      <section class="hero">
+        <div class="card">
+          <h1>Post a walk. Let locals walk your dog.</h1>
+          <p class="muted">Owners publish a walk request, walkers bid or accept instantly. No insurance — just a clean, simple matching tool.</p>
+          <div class="pill-row">
+            <span class="pill">📍 Switzerland only (for now)</span>
+            <span class="pill">🔐 OTP login (no password)</span>
+            <span class="pill">💬 Owners & walkers can be the same person</span>
+          </div>
         </div>
-      </div>
-      <div class="card">
-        <b>How it works</b>
-        <ol>
-          <li>Sign in with your email (we send a 6-digit code).</li>
-          <li>Complete your profile (name, phone, address, role).</li>
-          <li>Owners book walks. Walkers see & accept or bid.</li>
-        </ol>
-        <p class="muted" style="font-size:13px;margin-top:6px;">
-          For testing you can use code <b>555555</b> instead of the email code (dev only).
-        </p>
-      </div>
-    </section>
+        <div class="card">
+          <h2>How it works</h2>
+          <ol style="font-size:13px; padding-left:18px; margin-top:4px;">
+            <li>Sign in with your email (we email a 6-digit code).</li>
+            <li>Tick if you’re an owner, a walker, or both.</li>
+            <li>Owners create jobs. Walkers in the same city get emails.</li>
+            <li>Walkers bid or accept, owners can accept / reject / counter.</li>
+          </ol>
+          <p class="muted" style="font-size:12px; margin-top:6px;">
+            For testing, the code <b>555555</b> always works instead of the email code.
+          </p>
+        </div>
+      </section>
+    </main>
 
     <footer>
       <span>© <span id="yr"></span> DogWalkr</span>
-      <span class="muted">No insurance. Owners & walkers are independent.</span>
+      <span>No insurance; you act at your own risk.</span>
     </footer>
   </div>
 
   <!-- Sign-in Modal -->
   <dialog id="signinModal">
     <div class="modal-head">
-      <strong>Sign in / Create account</strong>
-      <button class="btn" onclick="closeSignin()">Close</button>
+      <span>Sign in / Create account</span>
+      <button class="btn btn-ghost" onclick="closeSignin()">Close</button>
     </div>
     <div class="modal-body">
       <form id="signinForm">
-        <label>Email (we’ll send a 6-digit code)</label>
-        <input required type="email" name="email" placeholder="you@email.com">
-        <div style="display:flex; gap:8px; align-items:center">
-          <button class="btn primary" type="submit">Send code</button>
-          <button class="btn" id="resendBtn" type="button" disabled>Resend (<span id="resendT">30</span>s)</button>
+        <div>
+          <label>Email</label>
+          <input type="email" name="email" placeholder="you@email.com" required>
         </div>
-        <div class="muted" style="font-size:12px">
-          Tip: first email can take a few seconds. Check Spam/Promotions.
-        </div>
+        <button class="btn btn-primary" type="submit">Send code</button>
+        <p class="muted" style="font-size:12px;">
+          We’ll send a 6-digit code. For dev you can just use <b>555555</b>.
+        </p>
       </form>
 
-      <form id="codeForm" style="display:none; margin-top:8px">
-        <label>Enter 6-digit code (or 555555 for dev)</label>
-        <input required inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" name="code"
-               placeholder="123456"
-               oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)"
-               autocomplete="one-time-code">
-        <button class="btn primary" type="submit">Verify</button>
+      <form id="codeForm" style="display:none; margin-top:10px;">
+        <div>
+          <label>Enter 6-digit code</label>
+          <input name="code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6"
+                 placeholder="123456" required
+                 oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
+        </div>
+        <button class="btn btn-primary" type="submit">Verify</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+          <button type="button" class="btn btn-ghost" id="resendBtn" disabled>Resend (<span id="resendT">30</span>s)</button>
+        </div>
       </form>
     </div>
   </dialog>
@@ -242,8 +427,8 @@
   <!-- Profile Modal -->
   <dialog id="profileModal">
     <div class="modal-head">
-      <strong>Your Profile</strong>
-      <button class="btn" onclick="closeProfile()">Close</button>
+      <span>Your profile</span>
+      <button class="btn btn-ghost" onclick="closeProfile()">Close</button>
     </div>
     <div class="modal-body">
       <form id="profileForm">
@@ -263,18 +448,22 @@
             <input name="phone" placeholder="+41 79 123 45 67" required>
           </div>
           <div>
-            <label>Address</label>
-            <input name="address" placeholder="Street, City" required>
+            <label>City</label>
+            <input name="city" placeholder="Zürich / Genève / Basel" required>
           </div>
         </div>
         <div class="row">
           <div>
             <label>Role</label>
-            <select name="role">
-              <option value="">—</option>
-              <option value="owner">Owner</option>
-              <option value="walker">Walker</option>
-            </select>
+            <div class="role-checkboxes">
+              <label class="checkbox-inline">
+                <input type="checkbox" name="is_owner"> Owner
+              </label>
+              <label class="checkbox-inline">
+                <input type="checkbox" name="is_walker"> Walker
+              </label>
+            </div>
+            <input type="hidden" name="role">
           </div>
           <div>
             <label>Preferred pay method</label>
@@ -286,19 +475,25 @@
         </div>
         <div class="row">
           <div>
-            <label>City (for matching)</label>
-            <input name="city" placeholder="Zürich / Genève / Basel / Bern">
+            <label>Address</label>
+            <input name="address" placeholder="Street, number">
           </div>
           <div>
-            <label>Experience (if walker)</label>
+            <label>Experience (as walker)</label>
             <input name="experience" placeholder="Beginner / Intermediate / Pro">
           </div>
         </div>
-        <label>About you (optional)</label>
-        <textarea name="bio" placeholder="Short intro"></textarea>
         <div class="row">
-          <button class="btn primary" type="submit">Save profile</button>
+          <div>
+            <label>Rate expectation (per hour)</label>
+            <input name="rate" type="number" min="1" step="1" placeholder="25">
+          </div>
+          <div>
+            <label>Short bio</label>
+            <input name="bio" placeholder="I love dogs…">
+          </div>
         </div>
+        <button class="btn btn-primary" type="submit">Save profile</button>
       </form>
     </div>
   </dialog>
@@ -306,36 +501,42 @@
   <!-- Owner Modal -->
   <dialog id="ownerModal">
     <div class="modal-head">
-      <strong>Book a Walk</strong>
-      <button class="btn" onclick="closeOwner()">Close</button>
+      <span>Book a walk</span>
+      <button class="btn btn-ghost" onclick="closeOwner()">Close</button>
     </div>
     <div class="modal-body">
       <form id="ownerForm">
         <div class="row">
           <div>
-            <label>Full name</label>
-            <input required name="name" placeholder="Jane Doe">
+            <label>Your name</label>
+            <input name="name" required>
           </div>
           <div>
-            <label>Email</label>
-            <input required type="email" name="email" placeholder="jane@email.com">
+            <label>Your email</label>
+            <input name="email" type="email" required>
           </div>
         </div>
         <div class="row">
           <div>
             <label>Phone</label>
-            <input required name="phone" placeholder="+41 79 123 45 67">
+            <input name="phone" required>
           </div>
           <div>
-            <label>Neighborhood / Address</label>
-            <input required name="address" placeholder="Street, City">
+            <label>City</label>
+            <input name="city" id="city_owner" placeholder="Zürich" required>
           </div>
         </div>
         <div class="row">
           <div>
-            <label>Dog name</label>
-            <input required name="dog_name" placeholder="Biscuit">
+            <label>Address</label>
+            <input name="address" placeholder="Street, number" required>
           </div>
+          <div>
+            <label>Dog name</label>
+            <input name="dog_name" placeholder="Biscuit" required>
+          </div>
+        </div>
+        <div class="row">
           <div>
             <label>Dog size</label>
             <select name="dog_size" required>
@@ -345,8 +546,6 @@
               <option>Large</option>
             </select>
           </div>
-        </div>
-        <div class="row">
           <div>
             <label>Temperament</label>
             <select name="temperament" required>
@@ -357,19 +556,15 @@
               <option>Reactive</option>
             </select>
           </div>
-          <div>
-            <label>Special notes</label>
-            <input name="notes" placeholder="Leash reactive, avoid other dogs…">
-          </div>
         </div>
         <div class="row">
           <div>
             <label>Date</label>
-            <input required type="date" id="date_owner" name="date">
+            <input type="date" name="date" id="date_owner" required>
           </div>
           <div>
             <label>Time</label>
-            <input required type="time" id="time_owner" name="time">
+            <input type="time" name="time" id="time_owner" required>
           </div>
         </div>
         <div class="row">
@@ -384,33 +579,39 @@
             </select>
           </div>
           <div>
-            <label>Preferred pay method</label>
+            <label>Max price (CHF)</label>
+            <input type="number" name="max_price" min="1" step="1" placeholder="25">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Matching mode</label>
+            <select name="mode">
+              <option value="bidding">Let walkers bid (cheaper, slower)</option>
+              <option value="instant">First walker to accept (faster)</option>
+            </select>
+          </div>
+          <div>
+            <label>Pay method</label>
             <select name="pay_method">
               <option>Cash</option>
               <option>Transfer</option>
             </select>
           </div>
         </div>
-        <div class="row">
-          <div>
-            <label>Max price you’re willing to pay (CHF)</label>
-            <input name="max_price" type="number" min="1" step="1" placeholder="25">
-          </div>
-          <div>
-            <label>Matching mode</label>
-            <select name="mode">
-              <option value="bidding">Let walkers bid (cheaper, slower)</option>
-              <option value="instant">First available walker (faster)</option>
-            </select>
-          </div>
+        <div>
+          <label>Notes</label>
+          <textarea name="notes" placeholder="Leash reactive, avoid dog parks…"></textarea>
         </div>
-        <label>Extra details</label>
-        <textarea name="extra" placeholder="Any building entry notes, route preference, etc."></textarea>
-        <div class="terms">
-          <input required type="checkbox" id="ownerAgree">
-          <label for="ownerAgree">I understand DogWalkr is only a marketplace. No insurance is provided.</label>
+        <div>
+          <label>Extra details</label>
+          <textarea name="extra" placeholder="Building code, preferred route, etc."></textarea>
         </div>
-        <button class="btn primary" type="submit">Submit request</button>
+        <div class="inline-check">
+          <input type="checkbox" id="ownerAgree" required>
+          <label for="ownerAgree" style="margin:0;">I understand DogWalkr only matches people. No insurance is provided.</label>
+        </div>
+        <button class="btn btn-primary" type="submit">Post walk</button>
       </form>
     </div>
   </dialog>
@@ -418,34 +619,34 @@
   <!-- Walker Modal -->
   <dialog id="walkerModal">
     <div class="modal-head">
-      <strong>Become a Walker</strong>
-      <button class="btn" onclick="closeWalker()">Close</button>
+      <span>Become a walker</span>
+      <button class="btn btn-ghost" onclick="closeWalker()">Close</button>
     </div>
     <div class="modal-body">
       <form id="walkerForm">
         <div class="row">
           <div>
-            <label>Full name</label>
-            <input required name="name" placeholder="John Smith">
+            <label>Name</label>
+            <input name="name" required>
           </div>
           <div>
             <label>Email</label>
-            <input required type="email" name="email" placeholder="john@email.com">
+            <input name="email" type="email" required>
           </div>
         </div>
         <div class="row">
           <div>
             <label>Phone</label>
-            <input required name="phone" placeholder="+41 78 123 45 67">
+            <input name="phone" required>
           </div>
           <div>
             <label>City</label>
-            <input required name="city" placeholder="Zürich / Genève / Basel / Bern">
+            <input name="city" required>
           </div>
         </div>
         <div class="row">
           <div>
-            <label>Experience level</label>
+            <label>Experience</label>
             <select name="experience" required>
               <option value="">Choose…</option>
               <option>Beginner</option>
@@ -471,13 +672,15 @@
             <input name="rate" type="number" min="1" step="1" placeholder="25">
           </div>
         </div>
-        <label>About you</label>
-        <textarea name="bio" placeholder="Short intro"></textarea>
-        <div class="terms">
-          <input required type="checkbox" id="walkerAgree">
-          <label for="walkerAgree">I accept that I am an independent walker (no employment, no insurance).</label>
+        <div>
+          <label>About you</label>
+          <textarea name="bio" placeholder="Short intro…"></textarea>
         </div>
-        <button class="btn primary" type="submit">Apply</button>
+        <div class="inline-check">
+          <input type="checkbox" id="walkerAgree" required>
+          <label for="walkerAgree" style="margin:0;">I accept that I am an independent walker (no employment, no insurance).</label>
+        </div>
+        <button class="btn btn-primary" type="submit">Submit</button>
       </form>
     </div>
   </dialog>
@@ -485,168 +688,167 @@
   <!-- Walker Jobs Modal -->
   <dialog id="jobsModal">
     <div class="modal-head">
-      <strong>Open walks</strong>
-      <button class="btn" onclick="closeJobs()">Close</button>
+      <span>Open walks</span>
+      <button class="btn btn-ghost" onclick="closeJobs()">Close</button>
     </div>
     <div class="modal-body">
-      <p class="muted" id="jobsHint" style="font-size:13px">
-        These are owner requests that are still open.
+      <p class="muted" style="font-size:12px;margin-bottom:6px;">
+        Walks that are still open in your city (or all cities if your profile has no city).
       </p>
-      <div id="jobsList" style="display:grid; gap:12px; margin-top:8px;"></div>
-      <div id="jobsEmpty" class="muted" style="margin-top:8px; display:none;">
-        No open requests yet. Check back later.
-      </div>
+      <div id="jobsList" class="jobs-list"></div>
+      <div id="jobsEmpty" class="muted" style="font-size:13px;display:none;">No open walks yet.</div>
     </div>
   </dialog>
 
   <!-- Owner Jobs Modal -->
   <dialog id="ownerJobsModal">
     <div class="modal-head">
-      <strong>My requests</strong>
-      <button class="btn" onclick="closeOwnerJobs()">Close</button>
+      <span>My requests</span>
+      <button class="btn btn-ghost" onclick="closeOwnerJobs()">Close</button>
     </div>
     <div class="modal-body">
-      <p class="muted" style="font-size:13px">
-        Your jobs, with latest bid and number of bids. Click “View bids” to accept / reject / counter.
+      <p class="muted" style="font-size:12px;margin-bottom:6px;">
+        Your jobs, with latest bid and all bids (you can accept, reject, or counter).
       </p>
-      <div id="ownerJobsList" style="display:grid; gap:12px; margin-top:8px;"></div>
-      <div id="ownerJobsEmpty" class="muted" style="margin-top:8px; display:none;">
-        You haven’t requested any walks yet.
-      </div>
+      <div id="ownerJobsList" class="owner-jobs-list"></div>
+      <div id="ownerJobsEmpty" class="muted" style="font-size:13px;display:none;">You haven’t created any walks yet.</div>
     </div>
   </dialog>
 
   <div id="toast" class="toast">Saved.</div>
-  <div id="debug" hidden>
-    <b>Last server response</b>
-    <small>(toggle with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>)</small>
+  <div id="debug">
+    <b>Last server response</b><br/>
+    <small>Toggle with Ctrl/Cmd + D</small>
     <pre id="dbgpre">–</pre>
   </div>
 
   <script>
-    // === CONFIG ===
-    // ⚠️ Set this to your Apps Script Web App URL:
-    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbyKdCDMWjuhsf2VygsYN-ZPHMw6B1E-DbKtV2aFizs2tReJH0krYex5dmCwDWMp8Jd_Gw/exec";
+    // ========= CONFIG =========
+    // 👉 Put your Apps Script Web App URL here:
+    window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbx4gClbAe4Tee0Mrwt6BXHAAzmbESWvGkrBVGrUPle3wfGiVL69Z2l-rnW5TbPeM_I3Rw/exec";
     const AUTH_TOKEN_KEY = "dogwalkr_auth_token";
     const PROFILE_KEY    = "dogwalkr_profile";
 
-    // ===== Dialog helpers =====
+    // ========= Dialog helpers =========
     function supportsDialog(){
       try { return typeof HTMLDialogElement === 'function' && !!document.createElement('dialog').showModal; }
-      catch (_){ return false; }
+      catch(_){ return false; }
     }
     function openDlg(id){
-      const d = document.getElementById(id); if(!d) return;
-      try {
+      const d = document.getElementById(id);
+      if (!d) return;
+      try{
         if (supportsDialog()) d.showModal();
         else { d.setAttribute('open',''); d.style.display='block'; }
-      } catch(_){
+      }catch(_){
         d.setAttribute('open',''); d.style.display='block';
       }
     }
     function closeDlg(id){
-      const d = document.getElementById(id); if(!d) return;
-      try {
+      const d = document.getElementById(id);
+      if (!d) return;
+      try{
         if (supportsDialog()) d.close();
         else { d.removeAttribute('open'); d.style.display='none'; }
-      } catch(_){}
+      }catch(_){}
     }
 
-    window.openOwner    = () => { openDlg('ownerModal'); setDateMinToday(); prefillFormFromProfile('owner'); };
-    window.closeOwner   = () => closeDlg('ownerModal');
-    window.openWalker   = () => { openDlg('walkerModal'); prefillFormFromProfile('walker'); };
-    window.closeWalker  = () => closeDlg('walkerModal');
-    window.openSignin   = () => openDlg('signinModal');
-    window.closeSignin  = () => closeDlg('signinModal');
-    window.openProfile  = () => { prefillProfileForm(); openDlg('profileModal'); };
-    window.closeProfile = () => closeDlg('profileModal');
+    function openOwner(){ openDlg('ownerModal'); prefillFormFromProfile('owner'); setDateMinToday(); }
+    function closeOwner(){ closeDlg('ownerModal'); }
+    function openWalker(){ openDlg('walkerModal'); prefillFormFromProfile('walker'); }
+    function closeWalker(){ closeDlg('walkerModal'); }
+    function openSignin(){ openDlg('signinModal'); }
+    function closeSignin(){ closeDlg('signinModal'); }
+    function openProfile(){ prefillProfileForm(); openDlg('profileModal'); }
+    function closeProfile(){ closeDlg('profileModal'); }
+    async function openJobs(){ openDlg('jobsModal'); await refreshJobs(); }
+    function closeJobs(){ closeDlg('jobsModal'); }
+    async function openOwnerJobs(){ openDlg('ownerJobsModal'); await refreshOwnerJobs(); }
+    function closeOwnerJobs(){ closeDlg('ownerJobsModal'); }
 
-    window.openJobs       = async () => { openDlg('jobsModal'); await refreshJobs(); };
-    window.closeJobs      = () => closeDlg('jobsModal');
-    window.openOwnerJobs  = async () => { openDlg('ownerJobsModal'); await refreshOwnerJobs(); };
-    window.closeOwnerJobs = () => closeDlg('ownerJobsModal');
+    document.getElementById('btnOwner').onclick  = openOwner;
+    document.getElementById('btnWalker').onclick = openWalker;
+    document.getElementById('signinBtn').onclick = openSignin;
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const map = [
-        ['#btnOwner',  window.openOwner],
-        ['#btnWalker', window.openWalker],
-        ['#signinBtn', window.openSignin],
-      ];
-      for (const [sel, fn] of map) {
-        const el = document.querySelector(sel);
-        if (el) el.addEventListener('click', fn);
-      }
-    });
-
-    // ===== Utilities =====
+    // ========= Utils =========
     const dbg    = document.getElementById('debug');
     const dbgpre = document.getElementById('dbgpre');
+
     function setDebug(msg){
       try{
-        dbgpre.textContent = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2);
-      } catch(_){
+        dbgpre.textContent = typeof msg === 'string' ? msg : JSON.stringify(msg,null,2);
+      }catch(_){
         dbgpre.textContent = String(msg);
       }
     }
     document.addEventListener('keydown', (e)=>{
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') dbg.hidden = !dbg.hidden;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd'){
+        dbg.style.display = dbg.style.display === 'none' ? 'block' : 'none';
+      }
     });
+
     function showToast(msg){
       const t = document.getElementById('toast');
-      t.textContent = msg || 'Saved.';
+      t.textContent = msg || 'Saved';
       t.style.display = 'block';
-      setTimeout(()=> t.style.display = 'none', 2200);
+      setTimeout(()=> t.style.display='none', 2100);
     }
+
     async function postForm(obj){
-      try {
+      try{
         const body = new URLSearchParams({ payload: JSON.stringify(obj) });
         const r = await fetch(window.FORM_ENDPOINT_URL, {
           method:'POST',
           headers:{'Content-Type':'application/x-www-form-urlencoded'},
           body
         });
-        const txt = await r.text().catch(()=>'');
+        const txt = await r.text().catch(()=> '');
         setDebug(txt || '(no text)');
         try { return JSON.parse(txt); }
         catch(_){ return r.ok ? {ok:true, opaque:true} : {ok:false, error:'HTTP '+r.status}; }
-      } catch(e){
+      }catch(e){
         setDebug(String(e));
         return {ok:false, error:String(e)};
       }
     }
 
-    // ===== Auth & Profile =====
+    // ========= Auth & Profile UI =========
+    function computeRoleFlags(prof){
+      const role = String(prof.role || '').toLowerCase();
+      const isOwner = prof.is_owner === '1' || role.includes('owner');
+      const isWalker = prof.is_walker === '1' || role.includes('walker');
+      return { isOwner, isWalker };
+    }
+
     function renderAuthUI(){
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       const prof  = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
       const signinBtn = document.getElementById('signinBtn');
-      const userChip  = document.getElementById('userChip');
+      const chip      = document.getElementById('userChip');
 
-      if (token) {
-        signinBtn.style.display = 'none';
-        userChip.style.display  = 'inline-flex';
-
-        const role = (prof.role || '').toLowerCase();
-        const isWalker = role === 'walker' || role.includes('walker');
-        const isOwner  = role === 'owner'  || role.includes('owner');
-
-        let html = (prof.name || prof.email || 'Account');
-
-        if (isWalker) {
-          html += ' · <button class="btn" style="margin-left:8px" onclick="openJobs()">Jobs</button>';
-        }
-        if (isOwner) {
-          html += ' · <button class="btn" style="margin-left:8px" onclick="openOwnerJobs()">My requests</button>';
-        }
-
-        html += ' · <button class="btn" style="margin-left:8px" onclick="openProfile()">Profile</button>';
-        html += ' <button class="btn" style="margin-left:8px" onclick="signOut()">Sign out</button>';
-
-        userChip.innerHTML = html;
-      } else {
-        signinBtn.style.display = 'inline-block';
-        userChip.style.display  = 'none';
+      if (!token){
+        signinBtn.style.display = 'inline-flex';
+        chip.style.display      = 'none';
+        return;
       }
+
+      const { isOwner, isWalker } = computeRoleFlags(prof);
+      signinBtn.style.display = 'none';
+      chip.style.display      = 'inline-flex';
+
+      const name = prof.name || prof.email || 'Account';
+      const parts = [name];
+
+      if (isOwner) {
+        parts.push(`<button class="btn btn-ghost" type="button" onclick="openOwnerJobs()">My requests</button>`);
+      }
+      if (isWalker) {
+        parts.push(`<button class="btn btn-ghost" type="button" onclick="openJobs()">Jobs</button>`);
+      }
+      parts.push(`<button class="btn btn-ghost" type="button" onclick="openProfile()">Profile</button>`);
+      parts.push(`<button class="btn btn-ghost" type="button" onclick="signOut()">Sign out</button>`);
+
+      chip.innerHTML = parts.join(' · ');
     }
 
     function signOut(){
@@ -659,23 +861,22 @@
     function prefillFormFromProfile(kind){
       try{
         const prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
-        const form = (kind === 'owner')
-          ? document.getElementById('ownerForm')
-          : document.getElementById('walkerForm');
+        const form = kind === 'owner' ? document.getElementById('ownerForm')
+                                      : document.getElementById('walkerForm');
         if (!form) return;
         const map = (k) => form.querySelector(`[name="${k}"]`);
         if (map('name')  && prof.name)  map('name').value  = prof.name;
         if (map('email') && prof.email) map('email').value = prof.email;
         if (map('phone') && prof.phone) map('phone').value = prof.phone;
-        if (kind === 'owner') {
-          if (map('address') && prof.address) map('address').value = prof.address;
-        }
-        if (kind === 'walker') {
-          if (map('city')        && prof.city)        map('city').value        = prof.city;
+        if (map('city')  && prof.city)  map('city').value  = prof.city;
+        if (kind === 'walker'){
           if (map('experience')  && prof.experience)  map('experience').value  = prof.experience;
-          if (map('availability')&& prof.availability)map('availability').value= prof.availability;
           if (map('rate')        && prof.rate)        map('rate').value        = prof.rate;
           if (map('bio')         && prof.bio)         map('bio').value         = prof.bio;
+          if (map('availability')&& prof.availability)map('availability').value= prof.availability;
+        }
+        if (kind === 'owner'){
+          if (map('address') && prof.address) map('address').value = prof.address;
         }
       }catch(_){}
     }
@@ -684,10 +885,16 @@
       try{
         const prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
         const form = document.getElementById('profileForm');
+        if (!form) return;
         const map = (k) => form.querySelector(`[name="${k}"]`);
-        ['name','email','phone','address','role','pay_method','experience','rate','bio','city'].forEach(k=>{
+        ['name','email','phone','address','city','pay_method','experience','rate','bio','role'].forEach(k=>{
           if (map(k) && prof[k]) map(k).value = prof[k];
         });
+        const ownerBox = form.elements['is_owner'];
+        const walkerBox = form.elements['is_walker'];
+        const { isOwner, isWalker } = computeRoleFlags(prof);
+        if (ownerBox) ownerBox.checked = isOwner;
+        if (walkerBox) walkerBox.checked = isWalker;
       }catch(_){}
     }
 
@@ -712,39 +919,40 @@
       return res;
     }
 
-    // ===== Profile submit =====
-    document.addEventListener('DOMContentLoaded', () => {
-      const pf = document.getElementById('profileForm');
-      pf.addEventListener('submit', async (e)=>{
-        e.preventDefault();
-        const token = localStorage.getItem(AUTH_TOKEN_KEY);
-        if (!token){
-          showToast('Please sign in first.');
-          closeProfile();
-          openSignin();
-          return;
-        }
-        const data = Object.fromEntries(new FormData(pf).entries());
-        const role = data.role || '';
-        const res  = await saveProfile(role, data);
-        if (res && res.ok){
-          localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || data));
-          renderAuthUI();
-          showToast('Profile saved');
-          closeProfile();
-        } else {
-          showToast('Could not save profile (server).');
-        }
-      });
+    // ========= Profile submit =========
+    document.getElementById('profileForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const form = e.target;
+      const fd   = new FormData(form);
+      const data = Object.fromEntries(fd.entries());
+
+      const isOwner  = form.elements['is_owner'].checked;
+      const isWalker = form.elements['is_walker'].checked;
+      data.is_owner  = isOwner ? '1' : '';
+      data.is_walker = isWalker ? '1' : '';
+      const roles = [];
+      if (isOwner) roles.push('owner');
+      if (isWalker) roles.push('walker');
+      data.role = roles.join(',');
+
+      const res = await saveProfile(data.role, data);
+      if (res && res.ok){
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || data));
+        renderAuthUI();
+        showToast('Profile saved');
+        closeProfile();
+      } else {
+        showToast('Could not save profile.');
+      }
     });
 
-    // ===== Signin submit & code verify =====
+    // ========= Signin & code verify =========
     document.getElementById('signinForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const email = e.target.email.value.trim();
       const res   = await postForm({ action:'start_login', email });
       if (res && res.ok){
-        showToast('Code sent (if email exists).');
+        showToast('Code sent if email exists.');
         const cf = document.getElementById('codeForm');
         cf.style.display = 'grid';
         cf.dataset.email = email;
@@ -769,7 +977,7 @@
           showToast((r2 && r2.ok) ? 'Code re-sent.' : 'Could not resend.');
         };
       } else {
-        showToast('Could not send code (server).');
+        showToast('Could not send code.');
       }
     });
 
@@ -781,329 +989,29 @@
       if (res && res.ok && res.token){
         localStorage.setItem(AUTH_TOKEN_KEY, res.token);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(res.profile || { email }));
-        showToast('Signed in!');
+        showToast('Signed in');
         renderAuthUI();
         closeSignin();
-        setTimeout(openProfile, 350);
+        setTimeout(openProfile, 300);
       } else {
-        showToast('Invalid/expired code or server mismatch.');
+        showToast(res && res.error ? res.error : 'Invalid or expired code.');
       }
     });
 
-    // ===== Walker jobs logic =====
-    async function refreshJobs(){
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token){
-        showToast('Please sign in as a walker first.');
-        closeJobs();
-        openSignin();
-        return;
-      }
-
-      const listEl  = document.getElementById('jobsList');
-      const emptyEl = document.getElementById('jobsEmpty');
-      if (!listEl || !emptyEl) return;
-
-      listEl.innerHTML = '<div class="muted">Loading open walks…</div>';
-      emptyEl.style.display = 'none';
-
-      const prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
-      const filter = {};
-      if (prof.city) filter.city = prof.city;
-
-      const res = await postForm({ action:'list_jobs', token, filter });
-      if (!res || !res.ok || !Array.isArray(res.jobs)){
-        listEl.innerHTML = '<div class="muted">Could not load jobs. Try again later.</div>';
-        emptyEl.style.display = 'none';
-        return;
-      }
-
-      const jobs = res.jobs;
-      listEl.innerHTML = '';
-      if (jobs.length === 0){
-        emptyEl.style.display = 'block';
-        return;
-      } else {
-        emptyEl.style.display = 'none';
-      }
-
-      jobs.forEach(job=>{
-        const div = document.createElement('div');
-        div.className = 'card';
-
-        const when = (job.date || '') + (job.time ? (' · ' + job.time) : '');
-        const city = job.city || (job.address || '').split(',').slice(-1)[0];
-        const price = job.max_price ? `${job.max_price} CHF max` : 'Price open';
-        const mode = (job.mode || 'bidding').toLowerCase();
-        const modeLabel = mode === 'instant' ? 'Instant match' : 'Bidding';
-
-        div.innerHTML = `
-          <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
-            <div>
-              <div><b>${job.dog_name || 'Dog'}</b>${job.dog_size ? ' · ' + job.dog_size : ''}</div>
-              <div class="muted" style="font-size:13px">${when || 'When: TBD'} · ${city || 'City not set'}</div>
-              <div class="muted" style="font-size:13px">Temperament: ${job.temperament || '–'}</div>
-              <div class="muted" style="font-size:13px">Mode: ${modeLabel} · ${price}</div>
-              ${job.notes ? `<div style="margin-top:4px; font-size:13px">${job.notes}</div>` : ''}
-            </div>
-            <div>
-              <button class="btn primary" data-job-id="${job.job_id || ''}" data-mode="${mode}">
-                ${mode === 'instant' ? 'Accept walk' : 'Bid on walk'}
-              </button>
-            </div>
-          </div>
-        `;
-        const btn = div.querySelector('button');
-        btn.addEventListener('click', () => openBidForJob(job));
-        listEl.appendChild(div);
-      });
-    }
-
-    async function openBidForJob(job){
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token){
-        showToast('Please sign in first.');
-        return;
-      }
-      if (!job || !job.job_id){
-        showToast('Invalid job.');
-        return;
-      }
-
-      const mode = (job.mode || 'bidding').toLowerCase();
-      let priceDefault = job.max_price || '';
-      let price;
-
-      if (mode === 'instant'){
-        price = window.prompt('Confirm your price in CHF for this walk:', priceDefault);
-        if (price === null || price === '') return;
-      } else {
-        price = window.prompt('Your bid price in CHF:', priceDefault);
-        if (price === null || price === '') return;
-      }
-
-      const message = mode === 'instant'
-        ? ''
-        : (window.prompt('Short message to the owner (optional):', '') || '');
-
-      const res = await postForm({
-        action:'place_bid',
-        token,
-        job_id: job.job_id,
-        bid: { price, message }
-      });
-
-      if (res && res.ok){
-        showToast(mode === 'instant' ? 'You accepted this walk.' : 'Bid sent.');
-        await refreshJobs();
-      } else {
-        showToast(res && res.error ? res.error : 'Could not send bid.');
-      }
-    }
-
-    // ===== Owner jobs logic =====
-    async function refreshOwnerJobs(){
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token){
-        showToast('Please sign in as an owner first.');
-        closeOwnerJobs();
-        openSignin();
-        return;
-      }
-
-      const listEl  = document.getElementById('ownerJobsList');
-      const emptyEl = document.getElementById('ownerJobsEmpty');
-      if (!listEl || !emptyEl) return;
-
-      listEl.innerHTML = '<div class="muted">Loading your requests…</div>';
-      emptyEl.style.display = 'none';
-
-      const res = await postForm({ action:'list_my_jobs', token });
-      if (!res || !res.ok || !Array.isArray(res.jobs)){
-        listEl.innerHTML = '<div class="muted">Could not load your jobs. Try again later.</div>';
-        emptyEl.style.display = 'none';
-        return;
-      }
-
-      const jobs = res.jobs;
-      listEl.innerHTML = '';
-      if (jobs.length === 0){
-        emptyEl.style.display = 'block';
-        return;
-      } else {
-        emptyEl.style.display = 'none';
-      }
-
-      jobs.forEach(job=>{
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const when = (job.date || '') + (job.time ? (' · ' + job.time) : '');
-        const city = job.city || (job.address || '').split(',').slice(-1)[0];
-        const price = job.max_price ? `${job.max_price} CHF max` : 'Price open';
-        const status = (job.status || '').toLowerCase() || 'open';
-
-        const latestPrice  = job.latest_bid_price  || '';
-        const latestStatus = job.latest_bid_status || '';
-        const latestEmail  = job.latest_bid_email  || '';
-        const bidCount     = job.bid_count || 0;
-
-        let latestLine = 'No bids yet.';
-        if (bidCount > 0){
-          latestLine = `Latest bid: ${latestPrice || '? CHF'} · ${latestStatus || ''} · ${latestEmail || ''}`;
-        }
-
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
-            <div>
-              <div><b>${job.dog_name || 'Dog'}</b>${job.dog_size ? ' · ' + job.dog_size : ''}</div>
-              <div class="muted" style="font-size:13px">
-                ${when || 'When: TBD'} · ${city || 'City not set'}
-              </div>
-              <div class="muted" style="font-size:13px">
-                Status: ${status} · Mode: ${(job.mode || 'bidding')}
-              </div>
-              <div class="muted" style="font-size:13px">
-                Max price: ${price} · Bids: ${bidCount}
-              </div>
-              <div class="muted" style="font-size:13px; margin-top:4px;">
-                ${latestLine}
-              </div>
-              <div class="muted" style="font-size:13px; margin-top:4px;" data-bids-container="1">
-                <!-- bids will appear here -->
-              </div>
-            </div>
-            <div>
-              <button class="btn" data-job-id="${job.job_id || ''}">View bids</button>
-            </div>
-          </div>
-        `;
-
-        const btn = card.querySelector('button');
-        const bidsContainer = card.querySelector('[data-bids-container]');
-        btn.addEventListener('click', () => openBidsForJob(job.job_id, bidsContainer));
-        listEl.appendChild(card);
-      });
-    }
-
-    async function openBidsForJob(jobId, container){
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token){
-        showToast('Please sign in first.');
-        return;
-      }
-      if (!jobId){
-        showToast('Invalid job.');
-        return;
-      }
-      if (!container) return;
-
-      container.textContent = 'Loading bids…';
-
-      const res = await postForm({ action:'list_bids', token, job_id: jobId });
-      if (!res || !res.ok || !Array.isArray(res.bids)){
-        container.textContent = 'Could not load bids.';
-        return;
-      }
-      const bids = res.bids;
-      if (bids.length === 0){
-        container.textContent = 'No bids yet.';
-        return;
-      }
-
-      container.innerHTML = '';
-      bids.forEach(b => {
-        const row = document.createElement('div');
-        row.style.marginTop = '4px';
-        row.style.fontSize = '13px';
-        row.className = 'muted';
-
-        const textSpan = document.createElement('span');
-        const price = b.price || '?';
-        const who   = b.walker_email || '';
-        const status= (b.status || '').toLowerCase();
-        const msg   = b.message ? ` · "${b.message}"` : '';
-        const counter = b.counter_price ? ` · Counter: ${b.counter_price} CHF` : '';
-        textSpan.textContent = `• ${price} CHF · ${status || 'pending'} · ${who}${msg}${counter}`;
-        row.appendChild(textSpan);
-
-        if (status === 'pending' || status === '') {
-          const acceptBtn = document.createElement('button');
-          acceptBtn.className = 'btn';
-          acceptBtn.style.marginLeft = '8px';
-          acceptBtn.textContent = 'Accept';
-          acceptBtn.addEventListener('click', () => ownerDecideBid(jobId, b.bid_id, 'accept'));
-
-          const rejectBtn = document.createElement('button');
-          rejectBtn.className = 'btn';
-          rejectBtn.style.marginLeft = '4px';
-          rejectBtn.textContent = 'Reject';
-          rejectBtn.addEventListener('click', () => ownerDecideBid(jobId, b.bid_id, 'reject'));
-
-          const counterBtn = document.createElement('button');
-          counterBtn.className = 'btn';
-          counterBtn.style.marginLeft = '4px';
-          counterBtn.textContent = 'Counter';
-          counterBtn.addEventListener('click', () => ownerDecideBid(jobId, b.bid_id, 'counter'));
-
-          row.appendChild(acceptBtn);
-          row.appendChild(rejectBtn);
-          row.appendChild(counterBtn);
-        }
-
-        container.appendChild(row);
-      });
-    }
-
-    async function ownerDecideBid(jobId, bidId, decision){
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token){
-        showToast('Please sign in first.');
-        return;
-      }
-      let counterPrice = null;
-      if (decision === 'counter') {
-        counterPrice = window.prompt('Counter-offer price in CHF:', '');
-        if (counterPrice === null || counterPrice === '') return;
-      }
-
-      const res = await postForm({
-        action: 'owner_decide_bid',
-        token,
-        job_id: jobId,
-        bid_id: bidId,
-        decision,
-        counter_price: counterPrice
-      });
-
-      if (res && res.ok) {
-        if (decision === 'accept') {
-          showToast('Bid accepted.');
-        } else if (decision === 'reject') {
-          showToast('Bid rejected.');
-        } else {
-          showToast('Counter-offer sent.');
-        }
-        await refreshOwnerJobs();
-      } else {
-        showToast(res && res.error ? res.error : 'Could not update bid.');
-      }
-    }
-
-    // ===== Owner / Walker submit =====
+    // ========= Owner form (create job or log to sheet) =========
     document.getElementById('ownerForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const d = document.getElementById('date_owner').value;
-      const todayStr = new Date().toISOString().slice(0,10);
-      if (!d || d < todayStr){
+      const today = new Date().toISOString().slice(0,10);
+      if (!d || d < today){
         showToast("Date can't be in the past.");
         return;
       }
 
       const formData = Object.fromEntries(new FormData(e.target).entries());
       const token    = localStorage.getItem(AUTH_TOKEN_KEY);
-
       let res;
+
       if (token){
         const job = {
           owner_name: formData.name || '',
@@ -1127,46 +1035,318 @@
       }
 
       if (res && res.ok){
-        showToast(token ? 'Request sent to walkers.' : 'Submitted to Google Sheet.');
+        showToast(token ? 'Walk posted and walkers notified.' : 'Submitted to Google Sheet.');
       } else {
-        showToast('Saved locally (server busy).');
+        showToast('Could not post walk (server).');
       }
 
       e.target.reset();
       closeOwner();
     });
 
+    // ========= Walker form (log to center) =========
     document.getElementById('walkerForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const data  = Object.fromEntries(new FormData(e.target).entries());
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (token) data._token = token;
       const res  = await postForm({ kind:'walker', data });
-      showToast((res && res.ok) ? 'Submitted to Google Sheet.' : 'Saved locally (server busy).');
+      showToast((res && res.ok) ? 'Submitted.' : 'Could not submit.');
       e.target.reset();
       closeWalker();
     });
 
-    // ===== Misc =====
+    // ========= Walker jobs list =========
+    async function refreshJobs(){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Sign in first.');
+        closeJobs();
+        openSignin();
+        return;
+      }
+      const listEl  = document.getElementById('jobsList');
+      const emptyEl = document.getElementById('jobsEmpty');
+      listEl.innerHTML = '<div class="muted" style="font-size:13px;">Loading…</div>';
+      emptyEl.style.display = 'none';
+
+      const prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+      const filter = {};
+      if (prof.city) filter.city = prof.city;
+
+      const res = await postForm({ action:'list_jobs', token, filter });
+      if (!res || !res.ok || !Array.isArray(res.jobs)){
+        listEl.innerHTML = '<div class="muted" style="font-size:13px;">Could not load jobs.</div>';
+        return;
+      }
+
+      const jobs = res.jobs;
+      listEl.innerHTML = '';
+      if (!jobs.length){
+        emptyEl.style.display = 'block';
+        return;
+      }
+
+      jobs.forEach(job=>{
+        const card = document.createElement('div');
+        card.className = 'job-card';
+
+        const when = (job.date || '') + (job.time ? (' · ' + job.time) : '');
+        const city = job.city || (job.address || '').split(',').slice(-1)[0];
+        const price = job.max_price ? `${job.max_price} CHF max` : 'Price open';
+        const mode = (job.mode || 'bidding').toLowerCase();
+        const modeLabel = mode === 'instant' ? 'Instant match' : 'Bidding';
+
+        card.innerHTML = `
+          <div class="job-header">
+            <div>
+              <div class="job-title">${job.dog_name || 'Dog'}${job.dog_size ? ' · ' + job.dog_size : ''}</div>
+              <div class="job-meta">${when || 'When: TBD'} · ${city || 'City not set'}</div>
+              <div class="job-meta">Temperament: ${job.temperament || '–'}</div>
+              <div class="job-meta">Mode: ${modeLabel} · ${price}</div>
+              ${job.notes ? `<div class="job-notes">${job.notes}</div>` : ''}
+            </div>
+            <div>
+              <button class="btn btn-primary" data-job-id="${job.job_id || ''}" data-mode="${mode}">
+                ${mode === 'instant' ? 'Accept walk' : 'Bid'}
+              </button>
+            </div>
+          </div>
+        `;
+        const btn = card.querySelector('button');
+        btn.addEventListener('click', ()=> openBidForJob(job));
+        listEl.appendChild(card);
+      });
+    }
+
+    async function openBidForJob(job){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Sign in first.');
+        return;
+      }
+      if (!job || !job.job_id){
+        showToast('Invalid job.');
+        return;
+      }
+
+      const mode = (job.mode || 'bidding').toLowerCase();
+      let priceDefault = job.max_price || '';
+      let price;
+
+      if (mode === 'instant'){
+        price = window.prompt('Confirm your price in CHF for this walk:', priceDefault);
+        if (price === null || price === '') return;
+      } else {
+        price = window.prompt('Your bid price in CHF:', priceDefault);
+        if (price === null || price === '') return;
+      }
+      const message = mode === 'instant'
+        ? ''
+        : (window.prompt('Message to owner (optional):', '') || '');
+
+      const res = await postForm({
+        action:'place_bid',
+        token,
+        job_id: job.job_id,
+        bid: { price, message }
+      });
+
+      if (res && res.ok){
+        showToast(mode === 'instant' ? 'You accepted this walk.' : 'Bid sent.');
+        await refreshJobs();
+      } else {
+        showToast(res && res.error ? res.error : 'Could not send bid.');
+      }
+    }
+
+    // ========= Owner jobs (list + bids + accept/reject/counter) =========
+    async function refreshOwnerJobs(){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Sign in first.');
+        closeOwnerJobs();
+        openSignin();
+        return;
+      }
+      const listEl  = document.getElementById('ownerJobsList');
+      const emptyEl = document.getElementById('ownerJobsEmpty');
+      listEl.innerHTML = '<div class="muted" style="font-size:13px;">Loading…</div>';
+      emptyEl.style.display = 'none';
+
+      const res = await postForm({ action:'list_my_jobs', token });
+      if (!res || !res.ok || !Array.isArray(res.jobs)){
+        listEl.innerHTML = '<div class="muted" style="font-size:13px;">Could not load requests.</div>';
+        return;
+      }
+
+      const jobs = res.jobs;
+      listEl.innerHTML = '';
+      if (!jobs.length){
+        emptyEl.style.display = 'block';
+        return;
+      }
+
+      jobs.forEach(job=>{
+        const card = document.createElement('div');
+        card.className = 'job-card';
+        const when = (job.date || '') + (job.time ? (' · ' + job.time) : '');
+        const city = job.city || (job.address || '').split(',').slice(-1)[0];
+        const price = job.max_price ? `${job.max_price} CHF max` : 'Price open';
+        const status = (job.status || '').toLowerCase() || 'open';
+
+        const latestPrice  = job.latest_bid_price  || '';
+        const latestStatus = job.latest_bid_status || '';
+        const latestEmail  = job.latest_bid_email  || '';
+        const bidCount     = job.bid_count || 0;
+
+        let latestLine = 'No bids yet.';
+        if (bidCount > 0){
+          latestLine = `Latest bid: ${latestPrice || '? CHF'} · ${latestStatus || ''} · ${latestEmail || ''}`;
+        }
+
+        card.innerHTML = `
+          <div class="job-header">
+            <div>
+              <div class="job-title">
+                ${job.dog_name || 'Dog'}${job.dog_size ? ' · ' + job.dog_size : ''}
+                ${status === 'assigned' ? '<span class="badge" style="margin-left:6px;">Assigned</span>' : ''}
+              </div>
+              <div class="job-meta">${when || 'When: TBD'} · ${city || 'City not set'}</div>
+              <div class="job-meta">Status: ${status} · Mode: ${job.mode || 'bidding'} · Max: ${price}</div>
+              <div class="job-meta">Bids: ${bidCount} · ${latestLine}</div>
+              <div class="job-meta" style="margin-top:4px;" data-bids-container="1"></div>
+            </div>
+            <div>
+              <button class="btn" data-job-id="${job.job_id || ''}">View bids</button>
+            </div>
+          </div>
+        `;
+        const btn = card.querySelector('button');
+        const bidsContainer = card.querySelector('[data-bids-container]');
+        btn.addEventListener('click', ()=> openBidsForJob(job.job_id, bidsContainer));
+        listEl.appendChild(card);
+      });
+    }
+
+    async function openBidsForJob(jobId, container){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Sign in first.');
+        return;
+      }
+      if (!jobId) return;
+      if (!container) return;
+
+      container.textContent = 'Loading bids…';
+
+      const res = await postForm({ action:'list_bids', token, job_id: jobId });
+      if (!res || !res.ok || !Array.isArray(res.bids)){
+        container.textContent = 'Could not load bids.';
+        return;
+      }
+      const bids = res.bids;
+      if (!bids.length){
+        container.textContent = 'No bids yet.';
+        return;
+      }
+
+      container.innerHTML = '';
+      bids.forEach(b=>{
+        const row = document.createElement('div');
+        row.style.marginTop = '4px';
+        row.style.fontSize  = '12px';
+        row.className = 'muted';
+
+        const price = b.price || '?';
+        const who   = b.walker_email || '';
+        const status= (b.status || '').toLowerCase();
+        const msg   = b.message ? ` · "${b.message}"` : '';
+        const counter = b.counter_price ? ` · Counter: ${b.counter_price} CHF` : '';
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = `• ${price} CHF · ${status || 'pending'} · ${who}${msg}${counter}`;
+        row.appendChild(textSpan);
+
+        if (status === 'pending' || status === '' || status === 'countered'){
+          const acceptBtn = document.createElement('button');
+          acceptBtn.className = 'btn';
+          acceptBtn.style.marginLeft = '6px';
+          acceptBtn.textContent = 'Accept';
+          acceptBtn.addEventListener('click', ()=> ownerDecideBid(jobId, b.bid_id, 'accept'));
+
+          const rejectBtn = document.createElement('button');
+          rejectBtn.className = 'btn';
+          rejectBtn.style.marginLeft = '4px';
+          rejectBtn.textContent = 'Reject';
+          rejectBtn.addEventListener('click', ()=> ownerDecideBid(jobId, b.bid_id, 'reject'));
+
+          const counterBtn = document.createElement('button');
+          counterBtn.className = 'btn';
+          counterBtn.style.marginLeft = '4px';
+          counterBtn.textContent = 'Counter';
+          counterBtn.addEventListener('click', ()=> ownerDecideBid(jobId, b.bid_id, 'counter'));
+
+          row.appendChild(acceptBtn);
+          row.appendChild(rejectBtn);
+          row.appendChild(counterBtn);
+        }
+
+        container.appendChild(row);
+      });
+    }
+
+    async function ownerDecideBid(jobId, bidId, decision){
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token){
+        showToast('Sign in first.');
+        return;
+      }
+      let counterPrice = null;
+      if (decision === 'counter'){
+        counterPrice = window.prompt('Counter-offer in CHF:', '');
+        if (counterPrice === null || counterPrice === '') return;
+      }
+
+      const res = await postForm({
+        action:'owner_decide_bid',
+        token,
+        job_id: jobId,
+        bid_id: bidId,
+        decision,
+        counter_price: counterPrice
+      });
+
+      if (res && res.ok){
+        if (decision === 'accept') showToast('Bid accepted.');
+        else if (decision === 'reject') showToast('Bid rejected.');
+        else showToast('Counter sent.');
+        await refreshOwnerJobs();
+      } else {
+        showToast(res && res.error ? res.error : 'Could not update bid.');
+      }
+    }
+
+    // ========= Misc =========
     function setDateMinToday(){
       const el = document.getElementById('date_owner');
       if (!el) return;
-      const tzToday = new Date().toISOString().slice(0,10);
-      el.min = tzToday;
-      if (!el.value) el.value = tzToday;
+      const today = new Date().toISOString().slice(0,10);
+      el.min = today;
+      if (!el.value) el.value = today;
     }
+
     document.getElementById('yr').textContent = new Date().getFullYear();
 
     (async function init(){
-      window.addEventListener('error', (e)=>{
-        console.error('[JS Error]', e.message);
-      });
+      console.log('[DogWalkr] Ready. Endpoint:', window.FORM_ENDPOINT_URL);
       renderAuthUI();
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (token) await getProfile();
-      renderAuthUI();
+      if (token){
+        await getProfile();
+        renderAuthUI();
+      }
       setDateMinToday();
-      console.log('[DogWalkr] Ready. Endpoint:', window.FORM_ENDPOINT_URL);
     })();
   </script>
 </body>
