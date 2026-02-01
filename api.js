@@ -1,5 +1,5 @@
 // api.js
-window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbxJt4eX1PVzvlyvy6Y-KzNy0imENU0oQ7dbf-Z1vsfJ/exec";
+window.FORM_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbyKVcB_G-om0cT_OhqG7B3VxMnudGKM2iPV4g9wGfcm8DxoDfmqH-bRAe6YyuEhwN4eYw/exec";
 
 async function postForm(obj){
   try{
