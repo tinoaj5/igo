@@ -276,3 +276,249 @@ document.getElementById('yr').textContent = new Date().getFullYear();
   renderAuthUI();
   setDateMinToday();
 })();
+// ====== helpers ======
+function token() { return localStorage.getItem("igo_auth_token"); }
+
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m => (
+  {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]
+));}
+
+function money(x){
+  const n = Number(x);
+  return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : "");
+}
+
+function showTab(id){
+  document.querySelectorAll(".tab").forEach(el => el.style.display = "none");
+  const el = document.getElementById(id);
+  if (el) el.style.display = "block";
+}
+
+function setHTML(id, html){
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+
+function openModal(html){
+  const m = document.getElementById("modal");
+  const b = document.getElementById("modalBody");
+  if (!m || !b) return;
+  b.innerHTML = html;
+  m.classList.remove("hidden");
+}
+function closeModal(){
+  const m = document.getElementById("modal");
+  if (m) m.classList.add("hidden");
+}
+document.getElementById("modalClose")?.addEventListener("click", closeModal);
+document.getElementById("modal")?.addEventListener("click", (e)=>{
+  if (e.target?.id === "modal") closeModal();
+});
+
+// ====== JOB FEED (walker sees open jobs) ======
+async function refreshOpenJobs(){
+  showTab("tab-jobs");
+  setHTML("tab-jobs", `<div class="card">Loading walks…</div>`);
+
+  const res = await postForm({ action:"list_jobs", token: token(), filter:{} });
+  const jobs = res.jobs || [];
+
+  if (!jobs.length){
+    setHTML("tab-jobs", `<div class="card">No open walks yet.</div>`);
+    return;
+  }
+
+  const cards = jobs.map(j => `
+    <div class="card" data-job-id="${esc(j.job_id)}">
+      <div class="row">
+        <div>
+          <div class="title">${esc(j.dog_name || "Dog")} • ${esc(j.city)}</div>
+          <div class="meta">${esc(j.date)} ${esc(j.time)} • ${esc(j.duration)} min • max ${money(j.max_price)}</div>
+          ${j.near === "1" ? `<div class="badge">Near you</div>` : ``}
+        </div>
+        <button class="btn" onclick="openBid('${esc(j.job_id)}')">Bid</button>
+      </div>
+      <div class="small">${esc(j.notes || "")}</div>
+    </div>
+  `).join("");
+
+  setHTML("tab-jobs", cards);
+}
+
+async function openBid(jobId){
+  openModal(`
+    <h3>Place a bid</h3>
+    <div class="field">
+      <label>Amount (CHF)</label>
+      <input id="bidAmount" type="number" min="1" placeholder="e.g. 25" />
+    </div>
+    <div class="field">
+      <label>Message (optional)</label>
+      <input id="bidMsg" type="text" placeholder="Any note for the owner?" />
+    </div>
+    <button class="btn" onclick="submitBid('${esc(jobId)}')">Send bid</button>
+  `);
+}
+
+async function submitBid(jobId){
+  const amount = Number(document.getElementById("bidAmount")?.value || "");
+  const message = document.getElementById("bidMsg")?.value || "";
+  const res = await postForm({ action:"place_bid", token: token(), job_id: jobId, bid: { amount, message } });
+  if (!res.ok){
+    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not bid")}</p>`);
+    return;
+  }
+  openModal(`<h3>Bid sent ✅</h3><p>Owner will be notified.</p>`);
+}
+
+// ====== OWNER: My Walks + current bids ======
+async function refreshOwnerMyWalks(){
+  showTab("tab-owner");
+  setHTML("tab-owner", `<div class="card">Loading your walks…</div>`);
+
+  const res = await postForm({ action:"owner_jobs", token: token() });
+  const jobs = res.jobs || [];
+
+  if (!jobs.length){
+    setHTML("tab-owner", `<div class="card">You haven’t posted any walks yet.</div>`);
+    return;
+  }
+
+  const cards = jobs.map(j => `
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="title">${esc(j.dog_name || "Dog")} • ${esc(j.city)}</div>
+          <div class="meta">${esc(j.date)} ${esc(j.time)} • ${esc(j.duration)} min</div>
+          <div class="badge">${esc((j.status||"").toUpperCase())}</div>
+        </div>
+        <button class="btn" onclick="openBids('${esc(j.job_id)}')">Bids</button>
+      </div>
+
+      ${String(j.status).toLowerCase()==="assigned" ? `
+        <div class="row" style="margin-top:10px">
+          <div class="small">Assigned to: ${esc(j.assigned_walker_email || "")}</div>
+          <button class="btn" onclick="markDone('${esc(j.job_id)}')">Mark done</button>
+        </div>
+      ` : ``}
+    </div>
+  `).join("");
+
+  setHTML("tab-owner", cards);
+}
+
+async function openBids(jobId){
+  openModal(`<div class="card">Loading bids…</div>`);
+  const res = await postForm({ action:"list_bids", token: token(), job_id: jobId });
+  const bids = res.bids || [];
+
+  if (!bids.length){
+    openModal(`<h3>No bids yet</h3><p>Share your request or wait a bit.</p>`);
+    return;
+  }
+
+  const html = `
+    <h3>Bids</h3>
+    ${bids.map(b => `
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="title">${esc(b.walker_name || b.walker_email)}</div>
+            <div class="meta">${money(b.amount)} • ${esc((b.status||"").toUpperCase())}</div>
+          </div>
+          <button class="btn" onclick="acceptBid('${esc(jobId)}','${esc(b.bid_id)}')">Accept</button>
+        </div>
+
+        <div class="small">${esc(b.message || "")}</div>
+
+        <div class="row" style="margin-top:10px">
+          <input id="counter_${esc(b.bid_id)}" type="number" placeholder="Counter CHF" style="flex:1"/>
+          <button class="btn" onclick="counterBid('${esc(jobId)}','${esc(b.bid_id)}')">Counter</button>
+        </div>
+      </div>
+    `).join("")}
+  `;
+  openModal(html);
+}
+
+async function acceptBid(jobId, bidId){
+  const res = await postForm({ action:"accept_bid", token: token(), job_id: jobId, bid_id: bidId });
+  if (!res.ok){
+    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not accept")}</p>`);
+    return;
+  }
+  openModal(`<h3>Accepted ✅</h3><p>This walk is now assigned and removed from open jobs.</p>`);
+  await refreshOwnerMyWalks();
+  await refreshOpenJobs();
+}
+
+async function counterBid(jobId, bidId){
+  const v = document.getElementById(`counter_${bidId}`)?.value;
+  const amount = Number(v || "");
+  const res = await postForm({ action:"counter_bid", token: token(), job_id: jobId, bid_id: bidId, counter: { amount }});
+  if (!res.ok){
+    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not counter")}</p>`);
+    return;
+  }
+  openModal(`<h3>Counter sent ✅</h3><p>The walker will be emailed.</p>`);
+}
+
+async function markDone(jobId){
+  const res = await postForm({ action:"mark_done", token: token(), job_id: jobId });
+  if (!res.ok){
+    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not mark done")}</p>`);
+    return;
+  }
+  openModal(`<h3>Completed ✅</h3>`);
+  await refreshOwnerMyWalks();
+}
+
+// ====== WALKER: My bids + statuses ======
+async function refreshMyBids(){
+  showTab("tab-walker");
+  setHTML("tab-walker", `<div class="card">Loading your bids…</div>`);
+
+  const res = await postForm({ action:"my_bids", token: token() });
+  const bids = res.bids || [];
+
+  if (!bids.length){
+    setHTML("tab-walker", `<div class="card">No bids yet. Go to “Open walks” and bid on one.</div>`);
+    return;
+  }
+
+  const cards = bids.map(b => `
+    <div class="card">
+      <div class="title">${esc(b.job_id)}</div>
+      <div class="meta">${money(b.amount)} • ${esc((b.status||"").toUpperCase())}</div>
+      <div class="small">${esc(b.message || "")}</div>
+    </div>
+  `).join("");
+
+  setHTML("tab-walker", cards);
+}
+
+// ====== CURRENT WALKS (assigned) ======
+async function refreshCurrentWalks(){
+  showTab("tab-current");
+  setHTML("tab-current", `<div class="card">Loading current walks…</div>`);
+
+  const res = await postForm({ action:"current_walks", token: token() });
+  const jobs = res.jobs || [];
+
+  if (!jobs.length){
+    setHTML("tab-current", `<div class="card">No current walks assigned.</div>`);
+    return;
+  }
+
+  const cards = jobs.map(j => `
+    <div class="card">
+      <div class="title">${esc(j.dog_name || "Dog")} • ${esc(j.city)}</div>
+      <div class="meta">${esc(j.date)} ${esc(j.time)} • ${esc(j.duration)} min</div>
+      <div class="small">Owner: ${esc(j.owner_email)}</div>
+      <div class="small">Walker: ${esc(j.assigned_walker_email)}</div>
+    </div>
+  `).join("");
+
+  setHTML("tab-current", cards);
+}
+
