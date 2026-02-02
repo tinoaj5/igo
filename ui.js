@@ -65,14 +65,27 @@ window.closeProfile = ()=> closeDlg('profileModal');
 
 window.closeChat = ()=> { closeDlg('chatModal'); CURRENT_CHAT_JOB_ID = null; };
 
-/* render auth chip */
-function computeRoleFlags(prof){
-  const role = String(prof.role || '').toLowerCase();
-  const isOwner  = prof.is_owner === '1' || role.includes('owner');
-  const isWalker = prof.is_walker === '1' || role.includes('walker');
+/* ---------- small helpers ---------- */
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, m => (
+    {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]
+  ));
+}
+function moneyCHF(x){
+  const n = Number(x);
+  return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : "");
+}
+function fmtStatus(s){
+  return String(s || "").toUpperCase();
+}
+function roleFlags(prof){
+  const role = String(prof?.role || '').toLowerCase();
+  const isOwner  = prof?.is_owner === '1' || role.includes('owner');
+  const isWalker = prof?.is_walker === '1' || role.includes('walker');
   return { isOwner, isWalker };
 }
 
+/* ---------- auth chip ---------- */
 function renderAuthUI(){
   const token = getToken();
   const prof  = getProfile();
@@ -85,13 +98,13 @@ function renderAuthUI(){
     return;
   }
 
-  const { isOwner, isWalker } = computeRoleFlags(prof);
+  const { isOwner } = roleFlags(prof);
   signinBtn.style.display = 'none';
   chip.style.display      = 'flex';
 
   const name = prof.name || prof.email || 'Account';
   const parts = [];
-  parts.push(`<span class="user-chip-name">${name}</span>`);
+  parts.push(`<span class="user-chip-name">${esc(name)}</span>`);
   if (isOwner) parts.push(`<span class="dot">·</span><button type="button" onclick="openOwnerJobs()">My walks</button>`);
   parts.push(`<span class="dot">·</span><button type="button" onclick="openJobs()">Jobs</button>`);
   parts.push(`<span class="dot">·</span><button type="button" onclick="openCurrentWalks()">Current</button>`);
@@ -172,7 +185,7 @@ function prefillProfileForm(){
   ['name','email','phone','address','city','pay_method','bio','role'].forEach(k=>{
     if (map(k) && prof[k]) map(k).value = prof[k];
   });
-  const { isOwner, isWalker } = computeRoleFlags(prof);
+  const { isOwner, isWalker } = roleFlags(prof);
   form.elements['is_owner'].checked  = isOwner;
   form.elements['is_walker'].checked = isWalker;
 }
@@ -236,37 +249,363 @@ document.getElementById('ownerForm').addEventListener('submit', async (e)=>{
     showToast('Walk posted.');
     e.target.reset();
     closeDlg('ownerModal');
+    // update owner list + jobs feed
     refreshOwnerJobs();
+    refreshJobs();
   } else {
     showToast(res?.error || 'Could not post walk.');
   }
 });
 
-/* ===== The rest of features are unchanged =====
-   Your backend already supports them. We keep calls exactly as before.
-   - refreshJobs()
-   - refreshOwnerJobs()
-   - refreshMyBids()
-   - refreshCurrentWalks()
-   - openChatForJob(), loadChat(), send chat
-   - shareLocation(), completeWalk()
-   These are the same as the previous all-in-one file.
-*/
+/* =========================================================
+   JOBS: Open walks near you (jobsModal / #jobsList)
+   ========================================================= */
 
-// --- IMPORTANT: If you already had these functions working, paste them below unchanged. ---
-// For now, keep it simple: show a toast so you know wiring is alive.
-// Replace these stubs by your working versions (from your previous file) if needed.
+function setEmptyState(listEl, emptyEl, isEmpty){
+  if (listEl) listEl.style.display = isEmpty ? "none" : "block";
+  if (emptyEl) emptyEl.style.display = isEmpty ? "block" : "none";
+}
 
-async function refreshJobs(){ /* keep your existing working version */ }
-async function refreshOwnerJobs(){ /* keep your existing working version */ }
-async function refreshMyBids(){ /* keep your existing working version */ }
-async function refreshCurrentWalks(){ /* keep your existing working version */ }
+window.refreshJobs = async function refreshJobs(){
+  const token = getToken();
+  const list = document.getElementById("jobsList");
+  const empty = document.getElementById("jobsEmpty");
+  if (!list) return;
 
-window.loadChat = async function(){ /* keep your existing working version */ };
+  list.innerHTML = `<div class="muted">Loading…</div>`;
+  setEmptyState(list, empty, false);
+
+  const res = await postForm({ action:"list_jobs", token, filter:{} });
+  if (!res || !res.ok){
+    list.innerHTML = `<div class="muted">Error: ${esc(res?.error || "failed")}</div>`;
+    return;
+  }
+
+  const jobs = res.jobs || [];
+  if (!jobs.length){
+    list.innerHTML = "";
+    setEmptyState(list, empty, true);
+    return;
+  }
+
+  list.innerHTML = jobs.map(j => {
+    const near = j.near === "1" ? `<div class="pill pill--accent">Near you</div>` : ``;
+    const max = j.max_price ? ` • max ${moneyCHF(j.max_price)}` : ``;
+    return `
+      <div class="job-card">
+        <div class="job-top">
+          <div class="job-left">
+            <div class="job-title">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+            <div class="job-meta">${esc(j.date || "")} ${esc(j.time || "")} • ${esc(j.duration || "")} min${max}</div>
+            ${near}
+          </div>
+          <div class="job-right">
+            <button class="btn btn-small btn-outline" type="button" onclick="openBid('${esc(j.job_id)}')">Bid</button>
+          </div>
+        </div>
+        ${j.notes ? `<div class="job-notes">${esc(j.notes)}</div>` : ``}
+      </div>
+    `;
+  }).join("");
+};
+
+// Bid flow: simple prompt modal-less (keeps your UI clean)
+window.openBid = async function openBid(jobId){
+  const token = getToken();
+  if (!token){ showToast("Sign in first"); openDlg("signinModal"); return; }
+
+  const amountStr = prompt("Your bid amount (CHF):", "25");
+  if (amountStr == null) return;
+  const amount = Number(amountStr);
+  if (!Number.isFinite(amount) || amount <= 0){ showToast("Invalid amount"); return; }
+
+  const message = prompt("Optional message to owner:", "") || "";
+  const res = await postForm({ action:"place_bid", token, job_id: jobId, bid:{ amount, message } });
+
+  if (res && res.ok){
+    showToast("Bid sent");
+    refreshMyBids();
+  } else {
+    showToast(res?.error || "Could not send bid");
+  }
+};
+
+/* =========================================================
+   OWNER JOBS: My walk requests (ownerJobsModal / #ownerJobsList)
+   ========================================================= */
+
+window.refreshOwnerJobs = async function refreshOwnerJobs(){
+  const token = getToken();
+  const list = document.getElementById("ownerJobsList");
+  const empty = document.getElementById("ownerJobsEmpty");
+  if (!list) return;
+
+  list.innerHTML = `<div class="muted">Loading…</div>`;
+  setEmptyState(list, empty, false);
+
+  const res = await postForm({ action:"owner_jobs", token });
+  if (!res || !res.ok){
+    list.innerHTML = `<div class="muted">Error: ${esc(res?.error || "failed")}</div>`;
+    return;
+  }
+
+  const jobs = res.jobs || [];
+  if (!jobs.length){
+    list.innerHTML = "";
+    setEmptyState(list, empty, true);
+    return;
+  }
+
+  list.innerHTML = jobs.map(j => {
+    const st = fmtStatus(j.status);
+    const assigned = String(j.status||"").toLowerCase() === "assigned";
+    return `
+      <div class="job-card">
+        <div class="job-top">
+          <div class="job-left">
+            <div class="job-title">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+            <div class="job-meta">${esc(j.date || "")} ${esc(j.time || "")} • ${esc(j.duration || "")} min</div>
+            <div class="pill">${esc(st)}</div>
+          </div>
+          <div class="job-right" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="btn btn-small btn-outline" type="button" onclick="openBids('${esc(j.job_id)}')">Bids</button>
+            ${assigned ? `<button class="btn btn-small btn-primary" type="button" onclick="markDone('${esc(j.job_id)}')">Mark done</button>` : ``}
+            <button class="btn btn-small btn-ghost" type="button" onclick="openChatForJob('${esc(j.job_id)}')">Chat</button>
+          </div>
+        </div>
+        ${assigned && j.assigned_walker_email ? `<div class="muted" style="margin-top:6px;">Walker: ${esc(j.assigned_walker_email)}</div>` : ``}
+      </div>
+    `;
+  }).join("");
+};
+
+window.markDone = async function markDone(jobId){
+  const token = getToken();
+  const res = await postForm({ action:"mark_done", token, job_id: jobId });
+  if (res && res.ok){
+    showToast("Marked done ✅");
+    refreshOwnerJobs();
+    refreshCurrentWalks();
+    refreshJobs();
+  } else {
+    showToast(res?.error || "Could not mark done");
+  }
+};
+
+/* =========================================================
+   BIDS: owner opens bids for one job (uses prompt-based UI)
+   ========================================================= */
+
+window.openBids = async function openBids(jobId){
+  const token = getToken();
+  if (!token){ showToast("Sign in first"); return; }
+
+  const res = await postForm({ action:"list_bids", token, job_id: jobId });
+  if (!res || !res.ok){
+    showToast(res?.error || "Could not load bids");
+    return;
+  }
+  const bids = res.bids || [];
+  if (!bids.length){
+    alert("No bids yet.");
+    return;
+  }
+
+  // Show bids in a simple text picker
+  const lines = bids.map((b, i)=> {
+    const who = b.walker_name || b.walker_email || "walker";
+    const amt = moneyCHF(b.amount);
+    const st = fmtStatus(b.status);
+    return `${i+1}) ${who} — ${amt} — ${st}`;
+  }).join("\n");
+
+  const pick = prompt(
+    `Bids for job ${jobId}\n\n${lines}\n\nType number to ACCEPT, or leave blank to cancel:`,
+    ""
+  );
+  if (!pick) return;
+  const idx = Number(pick) - 1;
+  if (!(idx >= 0 && idx < bids.length)){ showToast("Invalid selection"); return; }
+
+  const chosen = bids[idx];
+  const res2 = await postForm({ action:"accept_bid", token, job_id: jobId, bid_id: chosen.bid_id });
+  if (res2 && res2.ok){
+    showToast("Accepted ✅");
+    refreshOwnerJobs();
+    refreshJobs();
+    refreshCurrentWalks();
+  } else {
+    showToast(res2?.error || "Could not accept");
+  }
+
+  // Optional counter offer flow
+  const counter = prompt("Optional: counter-offer instead? Enter CHF amount or Cancel:", "");
+  if (counter && counter.trim()){
+    const amount = Number(counter);
+    if (Number.isFinite(amount) && amount > 0){
+      const r3 = await postForm({ action:"counter_bid", token, job_id: jobId, bid_id: chosen.bid_id, counter:{ amount } });
+      showToast((r3 && r3.ok) ? "Counter sent" : (r3?.error || "Counter failed"));
+    }
+  }
+};
+
+/* =========================================================
+   MY BIDS: walker history (myBidsModal / #myBidsList)
+   ========================================================= */
+
+window.refreshMyBids = async function refreshMyBids(){
+  const token = getToken();
+  const list = document.getElementById("myBidsList");
+  const empty = document.getElementById("myBidsEmpty");
+  if (!list) return;
+
+  list.innerHTML = `<div class="muted">Loading…</div>`;
+  setEmptyState(list, empty, false);
+
+  const res = await postForm({ action:"my_bids", token });
+  if (!res || !res.ok){
+    list.innerHTML = `<div class="muted">Error: ${esc(res?.error || "failed")}</div>`;
+    return;
+  }
+
+  const bids = res.bids || [];
+  if (!bids.length){
+    list.innerHTML = "";
+    setEmptyState(list, empty, true);
+    return;
+  }
+
+  list.innerHTML = bids.map(b => {
+    return `
+      <div class="job-card">
+        <div class="job-top">
+          <div class="job-left">
+            <div class="job-title">Job: ${esc(b.job_id)}</div>
+            <div class="job-meta">${moneyCHF(b.amount)} • ${esc(fmtStatus(b.status))}</div>
+          </div>
+          <div class="job-right">
+            <button class="btn btn-small btn-ghost" type="button" onclick="openChatForJob('${esc(b.job_id)}')">Chat</button>
+          </div>
+        </div>
+        ${b.message ? `<div class="job-notes">${esc(b.message)}</div>` : ``}
+      </div>
+    `;
+  }).join("");
+};
+
+/* =========================================================
+   CURRENT WALKS: assigned walks (currentWalksModal / #currentWalksList)
+   ========================================================= */
+
+window.refreshCurrentWalks = async function refreshCurrentWalks(){
+  const token = getToken();
+  const list = document.getElementById("currentWalksList");
+  const empty = document.getElementById("currentWalksEmpty");
+  if (!list) return;
+
+  list.innerHTML = `<div class="muted">Loading…</div>`;
+  setEmptyState(list, empty, false);
+
+  const res = await postForm({ action:"current_walks", token });
+  if (!res || !res.ok){
+    list.innerHTML = `<div class="muted">Error: ${esc(res?.error || "failed")}</div>`;
+    return;
+  }
+
+  const jobs = res.jobs || [];
+  if (!jobs.length){
+    list.innerHTML = "";
+    setEmptyState(list, empty, true);
+    return;
+  }
+
+  list.innerHTML = jobs.map(j => {
+    return `
+      <div class="job-card">
+        <div class="job-top">
+          <div class="job-left">
+            <div class="job-title">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+            <div class="job-meta">${esc(j.date || "")} ${esc(j.time || "")} • ${esc(j.duration || "")} min</div>
+          </div>
+          <div class="job-right" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="btn btn-small btn-outline" type="button" onclick="openChatForJob('${esc(j.job_id)}')">Chat</button>
+          </div>
+        </div>
+        <div class="muted" style="margin-top:6px;">Owner: ${esc(j.owner_email || "")}</div>
+        <div class="muted">Walker: ${esc(j.assigned_walker_email || "")}</div>
+      </div>
+    `;
+  }).join("");
+};
+
+/* =========================================================
+   CHAT: chatModal + #chatMessages + #chatForm
+   ========================================================= */
+
+window.openChatForJob = async function openChatForJob(jobId){
+  CURRENT_CHAT_JOB_ID = jobId;
+  document.getElementById("chatHeader").textContent = `Chat for walk ${jobId}`;
+  openDlg("chatModal");
+  await loadChat();
+};
+
+window.loadChat = async function loadChat(){
+  const token = getToken();
+  const box = document.getElementById("chatMessages");
+  if (!box) return;
+  if (!CURRENT_CHAT_JOB_ID){
+    box.innerHTML = `<div class="chat-empty">No chat selected.</div>`;
+    return;
+  }
+
+  box.innerHTML = `<div class="chat-empty">Loading messages…</div>`;
+
+  const res = await postForm({ action:"list_messages", token, job_id: CURRENT_CHAT_JOB_ID });
+  if (!res || !res.ok){
+    box.innerHTML = `<div class="chat-empty">Error: ${esc(res?.error || "failed")}</div>`;
+    return;
+  }
+
+  const msgs = res.messages || [];
+  if (!msgs.length){
+    box.innerHTML = `<div class="chat-empty">No messages yet. Say hi 👋</div>`;
+    return;
+  }
+
+  const me = String(getProfile()?.email || "").toLowerCase();
+
+  box.innerHTML = msgs.map(m=>{
+    const who = (String(m.sender_email||"").toLowerCase() === me) ? "me" : "them";
+    const name = m.sender_name || m.sender_email || "user";
+    const time = m.ts ? new Date(m.ts).toLocaleString() : "";
+    return `
+      <div class="chat-bubble ${who}">
+        <div class="chat-meta">${esc(name)} ${time ? `· ${esc(time)}` : ""}</div>
+        <div class="chat-body">${esc(m.body || "")}</div>
+      </div>
+    `;
+  }).join("");
+
+  // scroll to bottom
+  box.scrollTop = box.scrollHeight;
+};
 
 document.getElementById('chatForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  // keep your existing working version
+  const token = getToken();
+  if (!token){ showToast("Sign in first"); return; }
+  if (!CURRENT_CHAT_JOB_ID){ showToast("No chat selected"); return; }
+
+  const body = e.target.body.value.trim();
+  if (!body) return;
+
+  const res = await postForm({ action:"send_message", token, job_id: CURRENT_CHAT_JOB_ID, body });
+  if (res && res.ok){
+    e.target.body.value = "";
+    await loadChat();
+  } else {
+    showToast(res?.error || "Could not send");
+  }
 });
 
 /* init */
@@ -276,249 +615,3 @@ document.getElementById('yr').textContent = new Date().getFullYear();
   renderAuthUI();
   setDateMinToday();
 })();
-// ====== helpers ======
-function token() { return localStorage.getItem("igo_auth_token"); }
-
-function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m => (
-  {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]
-));}
-
-function money(x){
-  const n = Number(x);
-  return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : "");
-}
-
-function showTab(id){
-  document.querySelectorAll(".tab").forEach(el => el.style.display = "none");
-  const el = document.getElementById(id);
-  if (el) el.style.display = "block";
-}
-
-function setHTML(id, html){
-  const el = document.getElementById(id);
-  if (el) el.innerHTML = html;
-}
-
-function openModal(html){
-  const m = document.getElementById("modal");
-  const b = document.getElementById("modalBody");
-  if (!m || !b) return;
-  b.innerHTML = html;
-  m.classList.remove("hidden");
-}
-function closeModal(){
-  const m = document.getElementById("modal");
-  if (m) m.classList.add("hidden");
-}
-document.getElementById("modalClose")?.addEventListener("click", closeModal);
-document.getElementById("modal")?.addEventListener("click", (e)=>{
-  if (e.target?.id === "modal") closeModal();
-});
-
-// ====== JOB FEED (walker sees open jobs) ======
-async function refreshOpenJobs(){
-  showTab("tab-jobs");
-  setHTML("tab-jobs", `<div class="card">Loading walks…</div>`);
-
-  const res = await postForm({ action:"list_jobs", token: token(), filter:{} });
-  const jobs = res.jobs || [];
-
-  if (!jobs.length){
-    setHTML("tab-jobs", `<div class="card">No open walks yet.</div>`);
-    return;
-  }
-
-  const cards = jobs.map(j => `
-    <div class="card" data-job-id="${esc(j.job_id)}">
-      <div class="row">
-        <div>
-          <div class="title">${esc(j.dog_name || "Dog")} • ${esc(j.city)}</div>
-          <div class="meta">${esc(j.date)} ${esc(j.time)} • ${esc(j.duration)} min • max ${money(j.max_price)}</div>
-          ${j.near === "1" ? `<div class="badge">Near you</div>` : ``}
-        </div>
-        <button class="btn" onclick="openBid('${esc(j.job_id)}')">Bid</button>
-      </div>
-      <div class="small">${esc(j.notes || "")}</div>
-    </div>
-  `).join("");
-
-  setHTML("tab-jobs", cards);
-}
-
-async function openBid(jobId){
-  openModal(`
-    <h3>Place a bid</h3>
-    <div class="field">
-      <label>Amount (CHF)</label>
-      <input id="bidAmount" type="number" min="1" placeholder="e.g. 25" />
-    </div>
-    <div class="field">
-      <label>Message (optional)</label>
-      <input id="bidMsg" type="text" placeholder="Any note for the owner?" />
-    </div>
-    <button class="btn" onclick="submitBid('${esc(jobId)}')">Send bid</button>
-  `);
-}
-
-async function submitBid(jobId){
-  const amount = Number(document.getElementById("bidAmount")?.value || "");
-  const message = document.getElementById("bidMsg")?.value || "";
-  const res = await postForm({ action:"place_bid", token: token(), job_id: jobId, bid: { amount, message } });
-  if (!res.ok){
-    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not bid")}</p>`);
-    return;
-  }
-  openModal(`<h3>Bid sent ✅</h3><p>Owner will be notified.</p>`);
-}
-
-// ====== OWNER: My Walks + current bids ======
-async function refreshOwnerMyWalks(){
-  showTab("tab-owner");
-  setHTML("tab-owner", `<div class="card">Loading your walks…</div>`);
-
-  const res = await postForm({ action:"owner_jobs", token: token() });
-  const jobs = res.jobs || [];
-
-  if (!jobs.length){
-    setHTML("tab-owner", `<div class="card">You haven’t posted any walks yet.</div>`);
-    return;
-  }
-
-  const cards = jobs.map(j => `
-    <div class="card">
-      <div class="row">
-        <div>
-          <div class="title">${esc(j.dog_name || "Dog")} • ${esc(j.city)}</div>
-          <div class="meta">${esc(j.date)} ${esc(j.time)} • ${esc(j.duration)} min</div>
-          <div class="badge">${esc((j.status||"").toUpperCase())}</div>
-        </div>
-        <button class="btn" onclick="openBids('${esc(j.job_id)}')">Bids</button>
-      </div>
-
-      ${String(j.status).toLowerCase()==="assigned" ? `
-        <div class="row" style="margin-top:10px">
-          <div class="small">Assigned to: ${esc(j.assigned_walker_email || "")}</div>
-          <button class="btn" onclick="markDone('${esc(j.job_id)}')">Mark done</button>
-        </div>
-      ` : ``}
-    </div>
-  `).join("");
-
-  setHTML("tab-owner", cards);
-}
-
-async function openBids(jobId){
-  openModal(`<div class="card">Loading bids…</div>`);
-  const res = await postForm({ action:"list_bids", token: token(), job_id: jobId });
-  const bids = res.bids || [];
-
-  if (!bids.length){
-    openModal(`<h3>No bids yet</h3><p>Share your request or wait a bit.</p>`);
-    return;
-  }
-
-  const html = `
-    <h3>Bids</h3>
-    ${bids.map(b => `
-      <div class="card">
-        <div class="row">
-          <div>
-            <div class="title">${esc(b.walker_name || b.walker_email)}</div>
-            <div class="meta">${money(b.amount)} • ${esc((b.status||"").toUpperCase())}</div>
-          </div>
-          <button class="btn" onclick="acceptBid('${esc(jobId)}','${esc(b.bid_id)}')">Accept</button>
-        </div>
-
-        <div class="small">${esc(b.message || "")}</div>
-
-        <div class="row" style="margin-top:10px">
-          <input id="counter_${esc(b.bid_id)}" type="number" placeholder="Counter CHF" style="flex:1"/>
-          <button class="btn" onclick="counterBid('${esc(jobId)}','${esc(b.bid_id)}')">Counter</button>
-        </div>
-      </div>
-    `).join("")}
-  `;
-  openModal(html);
-}
-
-async function acceptBid(jobId, bidId){
-  const res = await postForm({ action:"accept_bid", token: token(), job_id: jobId, bid_id: bidId });
-  if (!res.ok){
-    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not accept")}</p>`);
-    return;
-  }
-  openModal(`<h3>Accepted ✅</h3><p>This walk is now assigned and removed from open jobs.</p>`);
-  await refreshOwnerMyWalks();
-  await refreshOpenJobs();
-}
-
-async function counterBid(jobId, bidId){
-  const v = document.getElementById(`counter_${bidId}`)?.value;
-  const amount = Number(v || "");
-  const res = await postForm({ action:"counter_bid", token: token(), job_id: jobId, bid_id: bidId, counter: { amount }});
-  if (!res.ok){
-    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not counter")}</p>`);
-    return;
-  }
-  openModal(`<h3>Counter sent ✅</h3><p>The walker will be emailed.</p>`);
-}
-
-async function markDone(jobId){
-  const res = await postForm({ action:"mark_done", token: token(), job_id: jobId });
-  if (!res.ok){
-    openModal(`<h3>Error</h3><p>${esc(res.error || "Could not mark done")}</p>`);
-    return;
-  }
-  openModal(`<h3>Completed ✅</h3>`);
-  await refreshOwnerMyWalks();
-}
-
-// ====== WALKER: My bids + statuses ======
-async function refreshMyBids(){
-  showTab("tab-walker");
-  setHTML("tab-walker", `<div class="card">Loading your bids…</div>`);
-
-  const res = await postForm({ action:"my_bids", token: token() });
-  const bids = res.bids || [];
-
-  if (!bids.length){
-    setHTML("tab-walker", `<div class="card">No bids yet. Go to “Open walks” and bid on one.</div>`);
-    return;
-  }
-
-  const cards = bids.map(b => `
-    <div class="card">
-      <div class="title">${esc(b.job_id)}</div>
-      <div class="meta">${money(b.amount)} • ${esc((b.status||"").toUpperCase())}</div>
-      <div class="small">${esc(b.message || "")}</div>
-    </div>
-  `).join("");
-
-  setHTML("tab-walker", cards);
-}
-
-// ====== CURRENT WALKS (assigned) ======
-async function refreshCurrentWalks(){
-  showTab("tab-current");
-  setHTML("tab-current", `<div class="card">Loading current walks…</div>`);
-
-  const res = await postForm({ action:"current_walks", token: token() });
-  const jobs = res.jobs || [];
-
-  if (!jobs.length){
-    setHTML("tab-current", `<div class="card">No current walks assigned.</div>`);
-    return;
-  }
-
-  const cards = jobs.map(j => `
-    <div class="card">
-      <div class="title">${esc(j.dog_name || "Dog")} • ${esc(j.city)}</div>
-      <div class="meta">${esc(j.date)} ${esc(j.time)} • ${esc(j.duration)} min</div>
-      <div class="small">Owner: ${esc(j.owner_email)}</div>
-      <div class="small">Walker: ${esc(j.assigned_walker_email)}</div>
-    </div>
-  `).join("");
-
-  setHTML("tab-current", cards);
-}
-
