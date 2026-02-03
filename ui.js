@@ -1,4 +1,13 @@
 // ui.js
+<script>
+  (async function(){
+    const mount = document.getElementById('modalsMount');
+    if (!mount) return;
+    const r = await fetch('modals.html', { cache: 'no-store' });
+    mount.innerHTML = await r.text();
+  })();
+</script>
+
 let CURRENT_CHAT_JOB_ID = null;
 
 const dbg    = document.getElementById('debug');
