@@ -1,0 +1,322 @@
+<!-- modals.html -->
+<!-- Paste this file next to index.html and load it (see loader snippet below). -->
+
+<!-- SIGN IN -->
+<dialog id="signinModal">
+  <div class="modal-head">
+    <span>Sign in to igo</span>
+    <button class="btn btn-ghost btn-small" onclick="closeSignin()">✕</button>
+  </div>
+  <div class="modal-body">
+    <form id="signinForm">
+      <div>
+        <label>Email</label>
+        <input type="email" name="email" placeholder="you@email.com" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Send code</button>
+      <p class="muted" style="font-size:11px;margin-top:4px;">
+        We’ll email you a 6-digit code. For testing you can directly use <b>555555</b>.
+      </p>
+    </form>
+
+    <form id="codeForm" style="display:none;margin-top:12px;">
+      <div>
+        <label>Enter 6-digit code</label>
+        <input name="code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6"
+               placeholder="123456" required
+               oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)">
+      </div>
+      <button class="btn btn-primary" type="submit">Verify</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+        <button type="button" class="btn btn-ghost btn-small" id="resendBtn" disabled>
+          Resend (<span id="resendT">30</span>s)
+        </button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- PROFILE -->
+<dialog id="profileModal">
+  <div class="modal-head">
+    <span>Your igo profile</span>
+    <button class="btn btn-ghost btn-small" onclick="closeProfile()">✕</button>
+  </div>
+  <div class="modal-body">
+    <form id="profileForm">
+      <div class="row">
+        <div>
+          <label>Full name</label>
+          <input name="name" placeholder="Jane Doe" required>
+        </div>
+        <div>
+          <label>Email</label>
+          <input name="email" type="email" placeholder="you@email.com" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Phone</label>
+          <input name="phone" placeholder="+41 79 123 45 67" required>
+        </div>
+        <div>
+          <label>City</label>
+          <input name="city" placeholder="Zürich / Genève / Basel" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Role</label>
+          <div class="role-checkboxes">
+            <label class="checkbox-inline">
+              <input type="checkbox" name="is_owner"> Owner
+            </label>
+            <label class="checkbox-inline">
+              <input type="checkbox" name="is_walker"> Walker
+            </label>
+          </div>
+          <input type="hidden" name="role">
+        </div>
+
+        <div>
+          <label>Preferred pay method</label>
+          <select name="pay_method">
+            <option>Cash</option>
+            <option>Bank transfer</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Address</label>
+          <input name="address" placeholder="Street, number">
+        </div>
+        <div>
+          <label>Short note</label>
+          <input name="bio" placeholder="Anything owners/walkers should know…">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" type="submit">Save profile</button>
+      <p class="muted" style="font-size:11px;margin-top:4px;">
+        Tip: tick both owner & walker if you sometimes need walks and sometimes offer them.
+      </p>
+    </form>
+  </div>
+</dialog>
+
+<!-- OWNER POST WALK -->
+<dialog id="ownerModal">
+  <div class="modal-head">
+    <span>Post a walk as owner</span>
+    <button class="btn btn-ghost btn-small" onclick="closeOwnerModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <form id="ownerForm">
+      <div class="row">
+        <div>
+          <label>Your name</label>
+          <input name="name" required>
+        </div>
+        <div>
+          <label>Your email</label>
+          <input name="email" type="email" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Phone</label>
+          <input name="phone" required>
+        </div>
+        <div>
+          <label>City</label>
+          <input name="city" id="city_owner" placeholder="Zürich" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Address</label>
+          <input name="address" placeholder="Street, number" required>
+        </div>
+        <div>
+          <label>Dog name</label>
+          <input name="dog_name" placeholder="Biscuit" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Dog size</label>
+          <select name="dog_size" required>
+            <option value="">Choose…</option>
+            <option>Small</option>
+            <option>Medium</option>
+            <option>Large</option>
+          </select>
+        </div>
+        <div>
+          <label>Temperament</label>
+          <select name="temperament" required>
+            <option value="">Choose…</option>
+            <option>Calm</option>
+            <option>Energetic</option>
+            <option>Shy</option>
+            <option>Reactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Date</label>
+          <input type="date" name="date" id="date_owner" required>
+        </div>
+        <div>
+          <label>Time</label>
+          <input type="time" name="time" id="time_owner" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Duration (minutes)</label>
+          <select name="duration" required>
+            <option value="">Choose…</option>
+            <option>30</option>
+            <option>45</option>
+            <option>60</option>
+            <option>90</option>
+          </select>
+        </div>
+        <div>
+          <label>Max price (CHF)</label>
+          <input type="number" name="max_price" min="1" step="1" placeholder="25">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Matching mode</label>
+          <select name="mode">
+            <option value="bidding">Let walkers bid (cheaper, slower)</option>
+            <option value="instant">First walker to accept (faster)</option>
+          </select>
+        </div>
+        <div>
+          <label>Pay method</label>
+          <select name="pay_method">
+            <option>Cash</option>
+            <option>Bank transfer</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label>Notes</label>
+        <textarea name="notes" placeholder="Leash reactive, avoid dog parks…"></textarea>
+      </div>
+
+      <div>
+        <label>Extra details</label>
+        <textarea name="extra" placeholder="Building code, preferred route, etc."></textarea>
+      </div>
+
+      <div class="inline-check">
+        <input type="checkbox" id="ownerAgree" required>
+        <label for="ownerAgree" style="margin:0;">
+          I understand igo is only a matching hub. igo does not provide insurance or guarantees.
+        </label>
+      </div>
+
+      <button class="btn btn-primary" type="submit">Post walk</button>
+    </form>
+  </div>
+</dialog>
+
+<!-- JOBS -->
+<dialog id="jobsModal">
+  <div class="modal-head">
+    <span>Open walks near you</span>
+    <button class="btn btn-ghost btn-small" onclick="closeJobs()">✕</button>
+  </div>
+  <div class="modal-body">
+    <p class="muted" style="font-size:11px;margin-bottom:6px;">
+      We prioritise walks matching your profile city. You can only have one active walk at a time.
+    </p>
+    <div id="jobsList" class="jobs-list"></div>
+    <div id="jobsEmpty" class="muted" style="font-size:13px;display:none;">No open walks yet.</div>
+  </div>
+</dialog>
+
+<!-- OWNER JOBS -->
+<dialog id="ownerJobsModal">
+  <div class="modal-head">
+    <span>My walk requests</span>
+    <button class="btn btn-ghost btn-small" onclick="closeOwnerJobs()">✕</button>
+  </div>
+  <div class="modal-body">
+    <p class="muted" style="font-size:11px;margin-bottom:6px;">
+      All walks you created, with bid history, latest offers and completion status.
+    </p>
+    <div id="ownerJobsList" class="owner-jobs-list"></div>
+    <div id="ownerJobsEmpty" class="muted" style="font-size:13px;display:none;">You haven’t created any walks yet.</div>
+  </div>
+</dialog>
+
+<!-- MY BIDS -->
+<dialog id="myBidsModal">
+  <div class="modal-head">
+    <span>My bids & walk history</span>
+    <button class="btn btn-ghost btn-small" onclick="closeMyBids()">✕</button>
+  </div>
+  <div class="modal-body">
+    <p class="muted" style="font-size:11px;margin-bottom:6px;">
+      Every bid you ever placed on igo — including accepted, countered or rejected.
+    </p>
+    <div id="myBidsList" class="my-bids-list"></div>
+    <div id="myBidsEmpty" class="muted" style="font-size:13px;display:none;">No bids yet.</div>
+  </div>
+</dialog>
+
+<!-- CURRENT WALKS -->
+<dialog id="currentWalksModal">
+  <div class="modal-head">
+    <span>Current walks · live panel</span>
+    <button class="btn btn-ghost btn-small" onclick="closeCurrentWalks()">✕</button>
+  </div>
+  <div class="modal-body">
+    <p class="muted" style="font-size:11px;margin-bottom:6px;">
+      Walks not completed yet. Owner can mark done. Walker can share location. Both can chat.
+    </p>
+    <div id="currentWalksList" class="current-walks-list"></div>
+    <div id="currentWalksEmpty" class="muted" style="font-size:13px;display:none;">No active walks right now.</div>
+  </div>
+</dialog>
+
+<!-- CHAT -->
+<dialog id="chatModal">
+  <div class="modal-head">
+    <span>Walk chat</span>
+    <button class="btn btn-ghost btn-small" onclick="closeChat()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="chat-wrapper">
+      <div class="chat-header" id="chatHeader">Owner & walker chat for this walk.</div>
+      <div id="chatMessages" class="chat-messages">
+        <div class="chat-empty">Loading messages…</div>
+      </div>
+      <form id="chatForm">
+        <div class="chat-form-row">
+          <textarea name="body" placeholder="Type a message…" required></textarea>
+          <button class="btn btn-primary btn-small" type="submit">Send</button>
+          <button class="btn btn-outline btn-small" type="button" onclick="loadChat()">Refresh</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</dialog>
