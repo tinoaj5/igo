@@ -320,3 +320,16 @@ textarea{min-height:80px;resize:vertical;}
   .btn{font-size:12px;padding:6px 10px;}
   h1{font-size:22px;}
 }
+/* --- Signed-in dashboard layout --- */
+.dash-wrap{
+  display:grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap:16px;
+}
+@media (max-width: 980px){
+  .dash-wrap{ grid-template-columns: 1fr; }
+}
+.dash-mini .dash-mini-title{ font-weight:700; margin-bottom:6px; }
+.dash-mini-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.dash-actions{ display:flex; flex-wrap:wrap; gap:10px; }
+
