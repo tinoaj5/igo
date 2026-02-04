@@ -22,6 +22,13 @@ function showToast(msg){
 }
 window.showToast = showToast;
 
+/* ✅ global esc helper (use everywhere) */
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+
 /* dialogs */
 function supportsDialog(){
   try { return typeof HTMLDialogElement === 'function' && !!document.createElement('dialog').showModal; }
@@ -64,6 +71,10 @@ window.closeProfile = ()=> closeDlg('profileModal');
 
 window.closeChat = ()=> { closeDlg('chatModal'); CURRENT_CHAT_JOB_ID = null; };
 
+/* ✅ bids modal */
+window.openBids = ()=> openDlg('bidsModal');
+window.closeBids = ()=> closeDlg('bidsModal');
+
 /* ===== Dashboard switching ===== */
 function showSignedInUI(){
   const dash = document.getElementById('dash');
@@ -86,7 +97,6 @@ function computeRoleFlags(prof){
 }
 
 function renderDash(){
-  const token = getToken();
   const prof  = getProfile() || {};
   const { isOwner, isWalker } = computeRoleFlags(prof);
 
@@ -99,15 +109,14 @@ function renderDash(){
   if (dashSub) {
     dashSub.textContent =
       isOwner && isWalker ? 'Owner + Walker mode enabled. Pick what you want to do now.' :
-      isOwner ? 'Owner mode: post a walk, then review bids in one click.' :
-      isWalker ? 'Walker mode: see open walks and bid/accept quickly.' :
+      isOwner ? 'Owner mode: post a walk, then manage bids in one click.' :
+      isWalker ? 'Walker mode: browse open walks and bid fast.' :
       'Complete your profile to unlock owner/walker features.';
   }
 
   if (ownerLatestCard) ownerLatestCard.style.display = isOwner ? 'block' : 'none';
   if (walkerHintCard)  walkerHintCard.style.display  = isWalker ? 'block' : 'none';
 
-  // Owner: show latest walk preview right away (so they don’t hunt for bids)
   if (isOwner) refreshOwnerLatestPreview().catch(()=>{});
 }
 
@@ -128,14 +137,13 @@ function renderAuthUI(){
   if (signinBtn) signinBtn.style.display = 'none';
   if (chip) chip.style.display      = 'flex';
 
-  // signed-in UI
   showSignedInUI();
 
-  const { isOwner, isWalker } = computeRoleFlags(prof);
+  const { isOwner } = computeRoleFlags(prof);
   const name = prof.name || prof.email || 'Account';
 
   const parts = [];
-  parts.push(`<span class="user-chip-name">${name}</span>`);
+  parts.push(`<span class="user-chip-name">${esc(name)}</span>`);
   if (isOwner) parts.push(`<span class="dot">·</span><button type="button" onclick="openOwnerModal()">Post walk</button>`);
   parts.push(`<span class="dot">·</span><button type="button" onclick="openJobs()">Open walks</button>`);
   parts.push(`<span class="dot">·</span><button type="button" onclick="openCurrentWalks()">Current</button>`);
@@ -286,7 +294,6 @@ document.getElementById('ownerForm')?.addEventListener('submit', async (e)=>{
     e.target.reset();
     closeDlg('ownerModal');
 
-    // Make owner experience “next step” immediately:
     await refreshOwnerLatestPreview();
     openDlg('ownerJobsModal');
     await refreshOwnerJobs();
@@ -295,17 +302,7 @@ document.getElementById('ownerForm')?.addEventListener('submit', async (e)=>{
   }
 });
 
-/* ====== Your existing feature functions ======
-   Keep using YOUR working versions from your previous ui.js for these:
-   - refreshJobs()
-   - refreshOwnerJobs()
-   - refreshMyBids()
-   - refreshCurrentWalks()
-   - openChat/loadChat/send chat
-   If you paste your current implementations here, dashboard still works.
-*/
-
-// ---- Minimal but working versions (if you don't have any) ----
+/* ===== Jobs feed (walker) ===== */
 async function refreshJobs(){
   const token = getToken();
   if (!token) return;
@@ -323,7 +320,6 @@ async function refreshJobs(){
     return;
   }
 
-  const esc = (s)=> String(s ?? '').replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
   const money = (x)=> {
     const n = Number(x);
     return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : '');
@@ -334,7 +330,7 @@ async function refreshJobs(){
       <div class="card-inner">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
           <div>
-            <div style="font-weight:700;">${esc(j.dog_name || 'Dog')} • ${esc(j.city || '')}</div>
+            <div style="font-weight:800;">${esc(j.dog_name || 'Dog')} • ${esc(j.city || '')}</div>
             <div class="muted" style="font-size:12px;">
               ${esc(j.date||'')} ${esc(j.time||'')} • ${esc(j.duration||'')} min • max ${money(j.max_price)}
             </div>
@@ -348,7 +344,6 @@ async function refreshJobs(){
 }
 
 window.openBidModal = function(jobId){
-  // super simple: prompt
   const v = prompt('Your bid amount in CHF:');
   if (v == null) return;
   const amount = Number(v);
@@ -363,6 +358,7 @@ async function placeBidQuick(jobId, amount){
   showToast('Bid sent');
 }
 
+/* ===== Owner jobs + actions ===== */
 async function refreshOwnerJobs(){
   const token = getToken();
   if (!token) return;
@@ -380,55 +376,185 @@ async function refreshOwnerJobs(){
     return;
   }
 
-  const esc = (s)=> String(s ?? '').replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-  const money = (x)=> {
-    const n = Number(x);
-    return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : '');
-  };
+  list.innerHTML = jobs.map(j=>{
+    const isAssigned = String(j.status||'').toLowerCase() === 'assigned';
+    return `
+      <div class="card" style="margin-bottom:10px;">
+        <div class="card-inner">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+            <div>
+              <div style="font-weight:800;">${esc(j.dog_name || 'Dog')} • ${esc(j.city || '')}</div>
+              <div class="muted" style="font-size:12px;">
+                ${esc(j.date||'')} ${esc(j.time||'')} • ${esc(j.duration||'')} min • status: ${esc(j.status||'')}
+              </div>
+            </div>
 
-  list.innerHTML = jobs.map(j=>`
-    <div class="card" style="margin-bottom:10px;">
-      <div class="card-inner">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
-          <div>
-            <div style="font-weight:700;">${esc(j.dog_name || 'Dog')} • ${esc(j.city || '')}</div>
-            <div class="muted" style="font-size:12px;">
-              ${esc(j.date||'')} ${esc(j.time||'')} • ${esc(j.duration||'')} min • status: ${esc(j.status||'')}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+              <button class="btn btn-primary btn-small" onclick="openBidsForJob('${esc(j.job_id)}')">
+                Manage bids
+              </button>
+              ${isAssigned ? `
+                <button class="btn btn-outline btn-small" onclick="openChatForJob('${esc(j.job_id)}')">Chat</button>
+                <button class="btn btn-outline btn-small" onclick="markDoneUI('${esc(j.job_id)}')">Mark done</button>
+              ` : ``}
             </div>
           </div>
-          <button class="btn btn-primary btn-small" onclick="openBidsForJob('${esc(j.job_id)}')">Bids</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
+/* ===== Bids modal (real list + counter multiple) ===== */
 window.openBidsForJob = async function(jobId){
   const token = getToken();
+  if (!token) return;
+
+  openDlg('bidsModal');
+
+  const title = document.getElementById('bidsTitle');
+  const list  = document.getElementById('bidsList');
+  const empty = document.getElementById('bidsEmpty');
+
+  if (title) title.textContent = `Bids for ${jobId}`;
+  if (list) list.innerHTML = `<div class="card"><div class="card-inner">Loading bids…</div></div>`;
+  if (empty) empty.style.display = 'none';
+
   const res = await postForm({ action:'list_bids', token, job_id: jobId });
-  if (!res.ok) return alert(res.error || 'Could not load bids');
+  if (!res.ok){
+    if (list) list.innerHTML = `<div class="card"><div class="card-inner">Error: ${esc(res.error || 'Could not load bids')}</div></div>`;
+    return;
+  }
 
   const bids = res.bids || [];
-  if (!bids.length) return alert('No bids yet.');
+  if (!bids.length){
+    if (list) list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
 
-  // Minimal prompt-style selection (your nicer modal version can replace this)
-  const lines = bids.map((b,i)=>`${i+1}) ${(b.walker_name||b.walker_email)} — ${b.amount} CHF — ${b.status}`).join('\n');
-  const pick = prompt(`Bids for ${jobId}\n\n${lines}\n\nType number to ACCEPT, blank to cancel:`);
-  if (!pick) return;
-  const ix = Number(pick) - 1;
-  if (!Number.isFinite(ix) || !bids[ix]) return alert('Invalid selection');
+  list.innerHTML = bids.map(b => {
+    const name = b.walker_name || b.walker_email || 'Walker';
+    const status = (b.status || '').toUpperCase();
+    const amount = (b.amount != null && String(b.amount) !== '') ? `${esc(b.amount)} CHF` : '—';
+    const bio = (b.message || '').startsWith('COUNTER:') ? '' : (b.message || '');
 
-  const ok = await postForm({ action:'accept_bid', token, job_id: jobId, bid_id: bids[ix].bid_id });
-  if (!ok.ok) return alert(ok.error || 'Could not accept');
-  showToast('Accepted');
+    return `
+      <div class="card" style="margin-bottom:10px;">
+        <div class="card-inner">
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px;">
+              👤
+            </div>
+
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+                <div style="min-width:0;">
+                  <div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(name)}</div>
+                  <div class="muted" style="font-size:12px;margin-top:2px;">
+                    <span style="font-weight:800;">${amount}</span>
+                    ${status ? ` · ${esc(status)}` : ``}
+                  </div>
+                </div>
+                <div class="muted" style="font-size:11px;opacity:.85;">⭐ reviews soon</div>
+              </div>
+
+              ${bio ? `<div class="muted" style="font-size:12px;margin-top:8px;">${esc(bio)}</div>` : ``}
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+            <button class="btn btn-primary btn-small" type="button"
+              onclick="acceptBidUI('${esc(jobId)}','${esc(b.bid_id)}')">
+              Accept
+            </button>
+
+            <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:220px;">
+              <input id="counter_${esc(b.bid_id)}" type="number" min="1" step="1"
+                     placeholder="Counter CHF"
+                     style="flex:1; min-width:120px;">
+              <button class="btn btn-outline btn-small" type="button"
+                onclick="counterBidUI('${esc(jobId)}','${esc(b.bid_id)}')">
+                Yes, counter
+              </button>
+              <button class="btn btn-ghost btn-small" type="button"
+                onclick="clearCounterUI('${esc(b.bid_id)}')">
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+window.clearCounterUI = function(bidId){
+  const el = document.getElementById(`counter_${bidId}`);
+  if (el) el.value = '';
+  showToast('Counter cleared');
+};
+
+window.counterBidUI = async function(jobId, bidId){
+  const token = getToken();
+  const el = document.getElementById(`counter_${bidId}`);
+  const amount = Number(el?.value || '');
+  if (!Number.isFinite(amount) || amount <= 0){
+    alert('Enter a valid counter amount.');
+    return;
+  }
+
+  const res = await postForm({
+    action:'counter_bid',
+    token,
+    job_id: jobId,
+    bid_id: bidId,
+    counter: { amount }
+  });
+
+  if (!res.ok){
+    alert(res.error || 'Could not counter');
+    return;
+  }
+
+  showToast('Counter sent');
+  await window.openBidsForJob(jobId);
+};
+
+window.acceptBidUI = async function(jobId, bidId){
+  const token = getToken();
+  const res = await postForm({ action:'accept_bid', token, job_id: jobId, bid_id: bidId });
+  if (!res.ok){
+    alert(res.error || 'Could not accept');
+    return;
+  }
+
+  showToast('Walker accepted ✅');
+  closeDlg('bidsModal');
   await refreshJobs();
   await refreshOwnerJobs();
+  await refreshCurrentWalks();
   await refreshOwnerLatestPreview();
 };
 
+window.markDoneUI = async function(jobId){
+  const token = getToken();
+  const res = await postForm({ action:'mark_done', token, job_id: jobId });
+  if (!res.ok){
+    alert(res.error || 'Could not mark done');
+    return;
+  }
+  showToast('Walk completed ✅');
+  await refreshOwnerJobs();
+  await refreshJobs();
+  await refreshCurrentWalks();
+};
+
+/* ===== My bids (walker history) ===== */
 async function refreshMyBids(){
   const token = getToken();
   if (!token) return;
+
   const list = document.getElementById('myBidsList');
   const empty = document.getElementById('myBidsEmpty');
   if (list) list.innerHTML = '';
@@ -436,24 +562,27 @@ async function refreshMyBids(){
 
   const res = await postForm({ action:'my_bids', token });
   const bids = res.bids || [];
+
   if (!bids.length){
     if (empty) empty.style.display = 'block';
     return;
   }
-  const esc = (s)=> String(s ?? '').replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+
   list.innerHTML = bids.map(b=>`
     <div class="card" style="margin-bottom:10px;">
       <div class="card-inner">
-        <div style="font-weight:700;">${esc(b.job_id)}</div>
+        <div style="font-weight:800;">${esc(b.job_id)}</div>
         <div class="muted" style="font-size:12px;">${esc(b.amount)} CHF • ${esc(b.status)}</div>
       </div>
     </div>
   `).join('');
 }
 
+/* ===== Current walks (owner + walker) + Chat button ===== */
 async function refreshCurrentWalks(){
   const token = getToken();
   if (!token) return;
+
   const list = document.getElementById('currentWalksList');
   const empty = document.getElementById('currentWalksEmpty');
   if (list) list.innerHTML = '';
@@ -461,22 +590,98 @@ async function refreshCurrentWalks(){
 
   const res = await postForm({ action:'current_walks', token });
   const jobs = res.jobs || [];
+
   if (!jobs.length){
     if (empty) empty.style.display = 'block';
     return;
   }
-  const esc = (s)=> String(s ?? '').replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+
   list.innerHTML = jobs.map(j=>`
     <div class="card" style="margin-bottom:10px;">
       <div class="card-inner">
-        <div style="font-weight:700;">${esc(j.dog_name||'Dog')} • ${esc(j.city||'')}</div>
-        <div class="muted" style="font-size:12px;">${esc(j.date||'')} ${esc(j.time||'')} • ${esc(j.duration||'')} min</div>
-        <div class="muted" style="font-size:12px;margin-top:8px;">Owner: ${esc(j.owner_email||'')}</div>
-        <div class="muted" style="font-size:12px;">Walker: ${esc(j.assigned_walker_email||'')}</div>
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+          <div>
+            <div style="font-weight:800;">${esc(j.dog_name||'Dog')} • ${esc(j.city||'')}</div>
+            <div class="muted" style="font-size:12px;">${esc(j.date||'')} ${esc(j.time||'')} • ${esc(j.duration||'')} min</div>
+            <div class="muted" style="font-size:12px;margin-top:8px;">Owner: ${esc(j.owner_email||'')}</div>
+            <div class="muted" style="font-size:12px;">Walker: ${esc(j.assigned_walker_email||'')}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="btn btn-outline btn-small" onclick="openChatForJob('${esc(j.job_id)}')">Chat</button>
+          </div>
+        </div>
       </div>
     </div>
   `).join('');
 }
+
+/* ===== Chat (works with your backend) ===== */
+window.openChatForJob = async function(jobId){
+  CURRENT_CHAT_JOB_ID = jobId;
+  openDlg('chatModal');
+  await loadChat();
+};
+
+window.loadChat = async function(){
+  const token = getToken();
+  if (!token || !CURRENT_CHAT_JOB_ID) return;
+
+  const box = document.getElementById('chatMessages');
+  const header = document.getElementById('chatHeader');
+  if (header) header.textContent = `Chat for walk ${CURRENT_CHAT_JOB_ID}`;
+
+  if (box) box.innerHTML = `<div class="chat-empty">Loading messages…</div>`;
+
+  const res = await postForm({ action:'list_messages', token, job_id: CURRENT_CHAT_JOB_ID });
+  if (!res.ok){
+    if (box) box.innerHTML = `<div class="chat-empty">Error: ${esc(res.error || 'Could not load messages')}</div>`;
+    return;
+  }
+
+  const msgs = res.messages || [];
+  if (!msgs.length){
+    if (box) box.innerHTML = `<div class="chat-empty">No messages yet. Say hi 👋</div>`;
+    return;
+  }
+
+  const me = (getProfile()?.email || '').toLowerCase();
+
+  if (box) {
+    box.innerHTML = msgs.map(m=>{
+      const mine = String(m.sender_email||'').toLowerCase() === me;
+      return `
+        <div style="display:flex;justify-content:${mine ? 'flex-end' : 'flex-start'};margin:6px 0;">
+          <div style="max-width:85%;padding:10px 12px;border-radius:14px;
+                      background:${mine ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.06)'};">
+            <div class="muted" style="font-size:11px;margin-bottom:3px;">
+              ${esc(m.sender_name || m.sender_email || 'User')}
+            </div>
+            <div style="white-space:pre-wrap;">${esc(m.body || '')}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    box.scrollTop = box.scrollHeight;
+  }
+};
+
+document.getElementById('chatForm')?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const token = getToken();
+  if (!token || !CURRENT_CHAT_JOB_ID) return;
+
+  const body = (e.target.body.value || '').trim();
+  if (!body) return;
+
+  const res = await postForm({ action:'send_message', token, job_id: CURRENT_CHAT_JOB_ID, body });
+  if (!res.ok){
+    alert(res.error || 'Could not send');
+    return;
+  }
+  e.target.body.value = '';
+  await loadChat();
+});
 
 /* ===== Latest owner walk preview on dashboard ===== */
 async function refreshOwnerLatestPreview(){
@@ -490,6 +695,7 @@ async function refreshOwnerLatestPreview(){
   const bidsBtn = document.getElementById('ownerLatestBidsBtn');
 
   if (!card || !body || !bidsBtn) return;
+
   if (!jobs.length){
     body.textContent = 'No walks posted yet.';
     bidsBtn.onclick = ()=> openOwnerModal();
@@ -498,24 +704,24 @@ async function refreshOwnerLatestPreview(){
   }
 
   const j = jobs[0];
+
   body.innerHTML = `
-    <div style="font-weight:700;">${(j.dog_name||'Dog')} • ${j.city||''}</div>
+    <div style="font-weight:800;">${esc(j.dog_name||'Dog')} • ${esc(j.city||'')}</div>
     <div class="muted" style="font-size:12px;margin-top:4px;">
-      ${j.date||''} ${j.time||''} • ${j.duration||''} min • status: ${j.status||''}
+      ${esc(j.date||'')} ${esc(j.time||'')} • ${esc(j.duration||'')} min • status: ${esc(j.status||'')}
     </div>
   `;
 
-  bidsBtn.textContent = 'View bids';
+  bidsBtn.textContent = 'Manage bids';
   bidsBtn.onclick = async ()=>{
     openDlg('ownerJobsModal');
     await refreshOwnerJobs();
-    // Optional: auto-open bids for latest job
     setTimeout(()=> window.openBidsForJob(j.job_id), 120);
   };
 }
 
 /* init */
-document.getElementById('yr').textContent = new Date().getFullYear();
+document.getElementById('yr') && (document.getElementById('yr').textContent = new Date().getFullYear());
 
 (function init(){
   renderAuthUI();
