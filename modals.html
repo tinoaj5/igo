@@ -243,38 +243,22 @@
   </div>
   <div class="modal-body">
     <p class="muted" style="font-size:11px;margin-bottom:6px;">
-      All walks you created, with bid history, latest offers and completion status.
+      Your walks + their bids (accept/counter directly inside the list).
     </p>
     <div id="ownerJobsList" class="owner-jobs-list"></div>
     <div id="ownerJobsEmpty" class="muted" style="font-size:13px;display:none;">You haven’t created any walks yet.</div>
   </div>
 </dialog>
 
-<!-- BIDS (Owner picks walker + counter multiple) -->
-<dialog id="bidsModal">
-  <div class="modal-head">
-    <span id="bidsTitle">Bids</span>
-    <button class="btn btn-ghost btn-small" onclick="closeBids()">✕</button>
-  </div>
-  <div class="modal-body">
-    <p class="muted" style="font-size:11px;margin-bottom:10px;">
-      Accept one walker to assign the walk. You can counter multiple walkers before deciding.
-    </p>
-
-    <div id="bidsList" class="owner-jobs-list"></div>
-    <div id="bidsEmpty" class="muted" style="font-size:13px;display:none;">No bids yet.</div>
-  </div>
-</dialog>
-
 <!-- MY BIDS -->
 <dialog id="myBidsModal">
   <div class="modal-head">
-    <span>My bids & walk history</span>
+    <span>My bids</span>
     <button class="btn btn-ghost btn-small" onclick="closeMyBids()">✕</button>
   </div>
   <div class="modal-body">
     <p class="muted" style="font-size:11px;margin-bottom:6px;">
-      Every bid you ever placed on igo — including accepted, countered or rejected.
+      If an owner countered you, you can accept or decline here.
     </p>
     <div id="myBidsList" class="my-bids-list"></div>
     <div id="myBidsEmpty" class="muted" style="font-size:13px;display:none;">No bids yet.</div>
@@ -284,12 +268,12 @@
 <!-- CURRENT WALKS -->
 <dialog id="currentWalksModal">
   <div class="modal-head">
-    <span>Current walks · live panel</span>
+    <span>Current walks</span>
     <button class="btn btn-ghost btn-small" onclick="closeCurrentWalks()">✕</button>
   </div>
   <div class="modal-body">
     <p class="muted" style="font-size:11px;margin-bottom:6px;">
-      Walks not completed yet. Owner can mark done. Both can chat.
+      Walks that are assigned and not completed. Chat is available here.
     </p>
     <div id="currentWalksList" class="current-walks-list"></div>
     <div id="currentWalksEmpty" class="muted" style="font-size:13px;display:none;">No active walks right now.</div>
