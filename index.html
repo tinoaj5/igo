@@ -130,12 +130,51 @@
          MARKETING (shows when signed OUT)
          ========================= -->
     <main id="marketing">
-      <!-- KEEP your existing hero/tri-grid content as you had it -->
-      <!-- (I’m leaving it intact — you can paste your current marketing content here if needed) -->
+      <!-- Keep your own marketing sections here if you want.
+           Leaving it minimal so it doesn't break layout. -->
+      <section class="hero-grid">
+        <div class="card card-soft-gradient">
+          <div class="card-inner">
+            <div class="hero-kicker">TRUSTED · TRANSPARENT · REAL-TIME</div>
+            <h1>Find a safe human for your dog, in your city.</h1>
+            <p class="muted">
+              Owners publish walk requests. Walkers nearby accept or bid.
+              igo is only the matching brain — you stay in control and responsibility.
+            </p>
 
-      <!-- Your existing sections from before, unchanged: -->
-      <!-- hero-grid + tri-grid etc. -->
-      <!-- If you already have them in your current file, keep them exactly the same. -->
+            <div class="hero-cta-row">
+              <button class="btn btn-primary" type="button" onclick="openSignin()">
+                <span class="icon">✦</span>Sign in
+              </button>
+              <button class="btn btn-outline" type="button" onclick="openSignin()">
+                <span class="icon">🐾</span>Get started
+              </button>
+            </div>
+
+            <div class="trust-line">
+              <div class="trust-icon">!</div>
+              <span>
+                igo does not provide insurance. For testing, the code <b>555555</b> always works.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-inner">
+            <div class="side-badge-row">
+              <h2>How igo works</h2>
+              <div class="side-badge">City-focused · human in the loop</div>
+            </div>
+            <ol class="steps">
+              <li>Sign in with your email (6-digit code).</li>
+              <li>Fill your profile and tick owner/walker/both.</li>
+              <li>Owners post walks. Walkers bid or accept.</li>
+              <li>Once accepted, it becomes a “Current walk” until done.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer>
@@ -145,44 +184,6 @@
 
   </div>
 
-  <!-- SIGN IN -->
-  <dialog id="signinModal">
-    <div class="modal-head">
-      <span>Sign in to igo</span>
-      <button class="btn btn-ghost btn-small" onclick="closeSignin()">✕</button>
-    </div>
-    <div class="modal-body">
-      <form id="signinForm">
-        <div>
-          <label>Email</label>
-          <input type="email" name="email" placeholder="you@email.com" required>
-        </div>
-        <button class="btn btn-primary" type="submit">Send code</button>
-        <p class="muted" style="font-size:11px;margin-top:4px;">
-          We’ll email you a 6-digit code. For testing you can directly use <b>555555</b>.
-        </p>
-      </form>
-
-      <form id="codeForm" style="display:none;margin-top:12px;">
-        <div>
-          <label>Enter 6-digit code</label>
-          <input name="code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6"
-                 placeholder="123456" required
-                 oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
-        </div>
-        <button class="btn btn-primary" type="submit">Verify</button>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-          <button type="button" class="btn btn-ghost btn-small" id="resendBtn" disabled>
-            Resend (<span id="resendT">30</span>s)
-          </button>
-        </div>
-      </form>
-    </div>
-  </dialog>
-
-  <!-- PROFILE / OWNER MODAL / JOBS / OWNER JOBS / MY BIDS / CURRENT WALKS / CHAT -->
-  <!-- Keep your existing dialogs exactly as you already have them. -->
-
   <div id="toast" class="toast">Saved.</div>
   <div id="debug">
     <b>Last server response</b><br/>
@@ -190,10 +191,33 @@
     <pre id="dbgpre">–</pre>
   </div>
 
+  <!-- ✅ mount dialogs here -->
+  <div id="modalsMount"></div>
+
+  <!-- base scripts -->
   <script src="api.js"></script>
   <script src="auth.js"></script>
-  <script src="ui.js"></script>
-<div id="modalsMount"></div>
 
+  <!-- ✅ load modals FIRST, then ui.js -->
+  <script>
+  (async function () {
+    try {
+      const mount = document.getElementById('modalsMount');
+      const r = await fetch('modals.html', { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' loading modals.html');
+      mount.innerHTML = await r.text();
+
+      const s = document.createElement('script');
+      s.src = 'ui.js';
+      s.defer = true;
+      document.body.appendChild(s);
+    } catch (e) {
+      console.error(e);
+      const dbg = document.getElementById('dbgpre');
+      if (dbg) dbg.textContent = 'Failed to load modals.html: ' + e;
+      alert('modals.html failed to load. Make sure it exists in the repo root.');
+    }
+  })();
+  </script>
 </body>
 </html>
