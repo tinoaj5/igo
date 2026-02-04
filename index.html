@@ -185,15 +185,11 @@
     <small>Toggle with Ctrl/Cmd + D</small>
     <pre id="dbgpre">–</pre>
   </div>
-
-  <!-- ✅ mount dialogs here -->
   <div id="modalsMount"></div>
 
-  <!-- base scripts -->
   <script src="api.js"></script>
   <script src="auth.js"></script>
 
-  <!-- ✅ load modals FIRST, then ui.js -->
   <script>
   (async function () {
     try {
@@ -208,8 +204,6 @@
       document.body.appendChild(s);
     } catch (e) {
       console.error(e);
-      const dbg = document.getElementById('dbgpre');
-      if (dbg) dbg.textContent = 'Failed to load modals.html: ' + e;
       alert('modals.html failed to load. Make sure it exists in the repo root.');
     }
   })();
