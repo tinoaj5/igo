@@ -250,6 +250,22 @@
   </div>
 </dialog>
 
+<!-- BIDS (Owner picks walker + counter multiple) -->
+<dialog id="bidsModal">
+  <div class="modal-head">
+    <span id="bidsTitle">Bids</span>
+    <button class="btn btn-ghost btn-small" onclick="closeBids()">✕</button>
+  </div>
+  <div class="modal-body">
+    <p class="muted" style="font-size:11px;margin-bottom:10px;">
+      Accept one walker to assign the walk. You can counter multiple walkers before deciding.
+    </p>
+
+    <div id="bidsList" class="owner-jobs-list"></div>
+    <div id="bidsEmpty" class="muted" style="font-size:13px;display:none;">No bids yet.</div>
+  </div>
+</dialog>
+
 <!-- MY BIDS -->
 <dialog id="myBidsModal">
   <div class="modal-head">
