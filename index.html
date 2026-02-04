@@ -71,17 +71,14 @@
               </div>
             </div>
 
-            <!-- Walker “status” shortcut -->
+            <!-- Walker panel (we will replace the inside via JS) -->
             <div id="walkerHintCard" class="dash-mini card" style="margin-top:14px; display:none;">
               <div class="card-inner">
-                <div class="dash-mini-title">Walker tips</div>
-                <div class="dash-mini-body">
-                  Calm pace, short leash near roads, ask owners about triggers.
+                <div class="dash-mini-title" id="walkerPanelTitle">Walker</div>
+                <div class="dash-mini-body" id="walkerPanelBody">
+                  Loading…
                 </div>
-                <div class="dash-mini-actions">
-                  <button class="btn btn-outline btn-small" type="button" onclick="openJobs()">Browse open walks</button>
-                  <button class="btn btn-outline btn-small" type="button" onclick="openMyBids()">My bids</button>
-                </div>
+                <div class="dash-mini-actions" id="walkerPanelActions"></div>
               </div>
             </div>
 
@@ -130,8 +127,6 @@
          MARKETING (shows when signed OUT)
          ========================= -->
     <main id="marketing">
-      <!-- Keep your own marketing sections here if you want.
-           Leaving it minimal so it doesn't break layout. -->
       <section class="hero-grid">
         <div class="card card-soft-gradient">
           <div class="card-inner">
