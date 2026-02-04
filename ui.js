@@ -1,3 +1,9 @@
+// ui.js — FULL WORKING VERSION (Option B)
+// IMPORTANT:
+// 1) index.html must load modals.html FIRST, then append ui.js (your loader script).
+// 2) ui.js MUST NOT contain any <script> tags.
+// 3) This file assumes api.js + auth.js expose: postForm, getToken, setToken, signOut, getProfile, setProfile.
+
 let CURRENT_CHAT_JOB_ID = null;
 
 /* ============ small helpers ============ */
@@ -128,7 +134,7 @@ function renderAuthUI(){
   parts.push(`<span class="dot">·</span><button type="button" onclick="doSignOut()">Sign out</button>`);
   chip.innerHTML = parts.join(' ');
 
-  renderDash();
+  renderDash().catch(()=>{});
 }
 
 window.doSignOut = function(){
@@ -137,23 +143,20 @@ window.doSignOut = function(){
   showToast('Signed out');
 };
 
-/* ============ load modals first, THEN init ============ */
-async function ensureModalsLoaded(){
-  const mount = document.getElementById('modalsMount');
-  if (!mount) return;
-
-  // only load once
-  if (mount.dataset.loaded === '1') return;
-
-  try{
-    const r = await fetch('modals.html', { cache: 'no-store' });
-    mount.innerHTML = await r.text();
-    mount.dataset.loaded = '1';
-  }catch(e){
-    console.error('Could not load modals.html', e);
+/* ============ ensure DOM elements exist before wiring ============ */
+async function waitForModals(){
+  // Option B means index.html loads modals.html before loading ui.js
+  // BUT this wait makes it bulletproof in case of caching/race.
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline){
+    if (document.getElementById('signinForm') && document.getElementById('profileForm')) return true;
+    await new Promise(r=>setTimeout(r, 30));
   }
+  console.error('Modals not found in DOM (signinForm/profileForm missing).');
+  return false;
 }
 
+/* ============ events ============ */
 function wireEvents(){
   /* Sign in */
   document.getElementById('signinBtn')?.addEventListener('click', ()=> openDlg('signinModal'));
@@ -162,34 +165,41 @@ function wireEvents(){
     e.preventDefault();
     const email = e.target.email.value.trim();
     const res   = await postForm({ action:'start_login', email });
+    setDebug(res);
+
     if (res && res.ok){
       showToast('Code sent. Use 555555 for testing.');
       const cf = document.getElementById('codeForm');
-      cf.style.display = 'grid';
-      cf.dataset.email = email;
+      if (cf){
+        cf.style.display = 'grid';
+        cf.dataset.email = email;
+      }
 
       const resendBtn = document.getElementById('resendBtn');
       const resendT   = document.getElementById('resendT');
       let secs = 30;
-      resendBtn.disabled = true;
-      resendT.textContent = secs;
-
-      const iv = setInterval(()=>{
-        secs--;
-        resendT.textContent = secs;
-        if (secs <= 0){
-          clearInterval(iv);
-          resendBtn.disabled = false;
-        }
-      }, 1000);
-
-      resendBtn.onclick = async ()=>{
+      if (resendBtn && resendT){
         resendBtn.disabled = true;
-        secs = 30;
         resendT.textContent = secs;
-        const r2 = await postForm({ action:'start_login', email });
-        showToast((r2 && r2.ok) ? 'Code re-sent.' : 'Could not resend.');
-      };
+
+        const iv = setInterval(()=>{
+          secs--;
+          resendT.textContent = secs;
+          if (secs <= 0){
+            clearInterval(iv);
+            resendBtn.disabled = false;
+          }
+        }, 1000);
+
+        resendBtn.onclick = async ()=>{
+          resendBtn.disabled = true;
+          secs = 30;
+          resendT.textContent = secs;
+          const r2 = await postForm({ action:'start_login', email });
+          setDebug(r2);
+          showToast((r2 && r2.ok) ? 'Code re-sent.' : 'Could not resend.');
+        };
+      }
     } else {
       showToast(res?.error || 'Could not send code.');
     }
@@ -200,6 +210,8 @@ function wireEvents(){
     const code  = e.target.code.value.trim();
     const email = e.target.dataset.email || '';
     const res   = await postForm({ action:'verify_code', email, code });
+    setDebug(res);
+
     if (res && res.ok && res.token){
       setToken(res.token);
       setProfile(res.profile || { email });
@@ -231,6 +243,8 @@ function wireEvents(){
     if (!token){ showToast('Sign in first'); return; }
 
     const res = await postForm({ action:'save_profile', token, role:data.role, profile:data });
+    setDebug(res);
+
     if (res && res.ok){
       setProfile(res.profile || data);
       renderAuthUI();
@@ -249,6 +263,8 @@ function wireEvents(){
 
     const job = Object.fromEntries(new FormData(e.target).entries());
     const res = await postForm({ action:'create_job', token, job });
+    setDebug(res);
+
     if (res && res.ok){
       showToast('Walk posted.');
       e.target.reset();
@@ -273,6 +289,7 @@ function wireEvents(){
     if (!body) return;
 
     const res = await postForm({ action:'send_message', token, job_id: CURRENT_CHAT_JOB_ID, body });
+    setDebug(res);
     if (!res?.ok) return showToast(res?.error || 'Could not send');
 
     e.target.reset();
@@ -317,7 +334,6 @@ function setDateMinToday(){
 
 /* ============ dashboard ============ */
 async function renderDash(){
-  const token = getToken();
   const prof  = getProfile() || {};
   const { isOwner, isWalker } = computeRoleFlags(prof);
 
@@ -328,8 +344,8 @@ async function renderDash(){
   if (dashSub) {
     dashSub.textContent =
       isOwner && isWalker ? 'Owner + Walker mode enabled. Pick what you want to do now.' :
-      isOwner ? 'Owner mode: post a walk → bids appear directly inside “My walks”.' :
-      isWalker ? 'Walker mode: bid, then manage counters from “My bids”.' :
+      isOwner ? 'Owner mode: post a walk → manage bids inside “My walks”.' :
+      isWalker ? 'Walker mode: bid, then handle counters in “My bids”.' :
       'Complete your profile to unlock owner/walker features.';
   }
 
@@ -342,17 +358,17 @@ async function renderDash(){
   if (isOwner) await refreshOwnerLatestPreview();
   if (isWalker) await refreshWalkerPanel();
 
-  // keep year updated
   const yr = document.getElementById('yr');
   if (yr) yr.textContent = new Date().getFullYear();
 }
 
-/* Owner: latest walk + one-click bids */
+/* Owner: latest walk + button to open owner jobs */
 async function refreshOwnerLatestPreview(){
   const token = getToken();
   if (!token) return;
 
   const res = await postForm({ action:'owner_jobs', token });
+  setDebug(res);
   const jobs = res.jobs || [];
 
   const body = document.getElementById('ownerLatestBody');
@@ -379,22 +395,23 @@ async function refreshOwnerLatestPreview(){
   btn.onclick = async ()=>{
     openDlg('ownerJobsModal');
     await refreshOwnerJobs();
-    // auto scroll to latest (nice later)
   };
 }
 
-/* Walker: show current walk OR latest bid */
+/* Walker: show current walk OR latest bid + counter actions */
 async function refreshWalkerPanel(){
   const token = getToken();
   if (!token) return;
 
   const body = document.getElementById('walkerPanelBody');
   const actions = document.getElementById('walkerPanelActions');
+  // If your HTML doesn't have these yet, we just skip without breaking anything.
   if (!body || !actions) return;
 
-  // First: check current walks
+  // First: current walks
   const cw = await postForm({ action:'current_walks', token });
   const current = (cw.jobs || [])[0];
+
   if (current){
     body.innerHTML = `
       <div style="font-weight:800;">Current walk: ${esc(current.dog_name||'Dog')} • ${esc(current.city||'')}</div>
@@ -421,16 +438,18 @@ async function refreshWalkerPanel(){
     return;
   }
 
-  const counter = b.counter_amount ? `Counter: <b>${money(b.counter_amount)}</b>` : '';
+  const st = String(b.status||'').toLowerCase();
+  const counter = (st === 'countered' && b.counter_amount) ? `• Owner counter: <b>${money(b.counter_amount)}</b>` : '';
+
   body.innerHTML = `
     <div style="font-weight:800;">Latest bid</div>
     <div class="muted" style="font-size:12px;margin-top:4px;">${esc(b.job_id)}</div>
-    <div class="muted" style="font-size:12px;margin-top:4px;">
-      Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b> ${counter ? `• ${counter}` : ''}
+    <div class="muted" style="font-size:12px;margin-top:6px;">
+      Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b> ${counter}
     </div>
   `;
 
-  if (String(b.status||'').toLowerCase() === 'countered' && b.counter_amount){
+  if (st === 'countered' && b.counter_amount){
     actions.innerHTML = `
       <button class="btn btn-primary btn-small" type="button" onclick="acceptCounter('${esc(b.job_id)}','${esc(b.bid_id)}')">Accept counter</button>
       <button class="btn btn-outline btn-small" type="button" onclick="declineCounter('${esc(b.job_id)}','${esc(b.bid_id)}')">Decline</button>
@@ -454,6 +473,7 @@ async function refreshJobs(){
   if (empty) empty.style.display = 'none';
 
   const res = await postForm({ action:'list_jobs', token, filter:{} });
+  setDebug(res);
   const jobs = res.jobs || [];
 
   if (!jobs.length){
@@ -495,6 +515,7 @@ window.openBidSheet = function(jobId, maxPrice){
 async function placeBidQuick(jobId, amount){
   const token = getToken();
   const res = await postForm({ action:'place_bid', token, job_id: jobId, bid:{ amount, message:'' } });
+  setDebug(res);
   if (!res?.ok) return alert(res?.error || 'Could not bid');
   showToast('Bid sent');
   await refreshWalkerPanel();
@@ -511,6 +532,7 @@ async function refreshOwnerJobs(){
   if (empty) empty.style.display = 'none';
 
   const res = await postForm({ action:'owner_jobs', token });
+  setDebug(res);
   const jobs = res.jobs || [];
 
   if (!jobs.length){
@@ -518,7 +540,6 @@ async function refreshOwnerJobs(){
     return;
   }
 
-  // For each job, we will lazy-load bids when user clicks “Show bids”
   list.innerHTML = jobs.map(j=>`
     <div class="card" style="margin-bottom:12px;">
       <div class="card-inner">
@@ -563,6 +584,8 @@ window.toggleBids = async function(jobId){
 async function renderBidsInto(jobId, wrap){
   const token = getToken();
   const res = await postForm({ action:'list_bids', token, job_id: jobId });
+  setDebug(res);
+
   if (!res?.ok){
     wrap.innerHTML = `<div class="muted" style="font-size:12px;">${esc(res?.error || 'Could not load bids')}</div>`;
     return;
@@ -577,9 +600,10 @@ async function renderBidsInto(jobId, wrap){
   wrap.innerHTML = bids.map(b=>{
     const initials = (b.walker_name || b.walker_email || 'W').trim().slice(0,1).toUpperCase();
     const status = String(b.status||'').toLowerCase();
-    const counterInfo = b.counter_amount ? `<div class="muted" style="font-size:12px;margin-top:4px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>` : '';
+    const counterInfo = b.counter_amount
+      ? `<div class="muted" style="font-size:12px;margin-top:4px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
+      : '';
 
-    // Big “walker card” ready for future: photo/reviews/bio placeholders
     return `
       <div class="card" style="margin-top:10px;">
         <div class="card-inner">
@@ -655,22 +679,25 @@ window.confirmCounterUI = async function(jobId, bidId){
   if (!Number.isFinite(amount) || amount <= 0) return showToast('Invalid counter amount');
 
   const res = await postForm({ action:'counter_bid', token, job_id: jobId, bid_id: bidId, counter:{ amount }});
+  setDebug(res);
   if (!res?.ok) return showToast(res?.error || 'Could not counter');
 
   showToast('Counter sent');
   const wrap = document.getElementById(`bidsWrap_${jobId}`);
   if (wrap) await renderBidsInto(jobId, wrap);
-  await refreshWalkerPanel(); // for the walker side preview later
+  await refreshWalkerPanel();
 };
 
 window.acceptBidUI = async function(jobId, bidId){
   const token = getToken();
   const ok = await postForm({ action:'accept_bid', token, job_id: jobId, bid_id: bidId });
+  setDebug(ok);
   if (!ok?.ok) return showToast(ok?.error || 'Could not accept');
 
   showToast('Accepted');
   await refreshOwnerJobs();
   await refreshOwnerLatestPreview();
+  await refreshCurrentWalks();
 };
 
 /* ============ My bids (walker) with counter accept/decline ============ */
@@ -684,6 +711,7 @@ async function refreshMyBids(){
   if (empty) empty.style.display = 'none';
 
   const res = await postForm({ action:'my_bids', token });
+  setDebug(res);
   const bids = res.bids || [];
 
   if (!bids.length){
@@ -726,14 +754,17 @@ async function refreshMyBids(){
 window.acceptCounter = async function(jobId, bidId){
   const token = getToken();
   const res = await postForm({ action:'accept_counter', token, job_id: jobId, bid_id: bidId });
+  setDebug(res);
   if (!res?.ok) return showToast(res?.error || 'Could not accept counter');
   showToast('Counter accepted — owner notified');
   await refreshMyBids();
+  await refreshCurrentWalks();
 };
 
 window.declineCounter = async function(jobId, bidId){
   const token = getToken();
   const res = await postForm({ action:'decline_counter', token, job_id: jobId, bid_id: bidId });
+  setDebug(res);
   if (!res?.ok) return showToast(res?.error || 'Could not decline counter');
   showToast('Declined');
   await refreshMyBids();
@@ -750,6 +781,7 @@ async function refreshCurrentWalks(){
   if (empty) empty.style.display = 'none';
 
   const res = await postForm({ action:'current_walks', token });
+  setDebug(res);
   const jobs = res.jobs || [];
 
   if (!jobs.length){
@@ -803,6 +835,8 @@ window.loadChat = async function(){
 
   box.innerHTML = `<div class="chat-empty">Loading messages…</div>`;
   const res = await postForm({ action:'list_messages', token, job_id: CURRENT_CHAT_JOB_ID });
+  setDebug(res);
+
   if (!res?.ok){
     box.innerHTML = `<div class="chat-empty">${esc(res?.error || 'Could not load messages')}</div>`;
     return;
@@ -816,7 +850,7 @@ window.loadChat = async function(){
 
   box.innerHTML = msgs.map(m=>`
     <div class="chat-msg">
-      <div class="chat-meta"><b>${esc(m.sender_name || m.sender_email)}</b> · <span>${esc(new Date(m.ts).toLocaleString())}</span></div>
+      <div class="chat-meta"><b>${esc(m.sender_name || m.sender_email || 'User')}</b> · <span>${esc(new Date(m.ts).toLocaleString())}</span></div>
       <div class="chat-body">${esc(m.body)}</div>
     </div>
   `).join('');
@@ -826,9 +860,26 @@ window.loadChat = async function(){
 
 /* ============ init ============ */
 async function init(){
-  await ensureModalsLoaded();
+  // Wait for injected modals to exist (prevents the "Send code refresh" bug)
+  const ok = await waitForModals();
+  if (!ok){
+    showToast('UI failed to init (modals not loaded)');
+    return;
+  }
+
   wireEvents();
   setDateMinToday();
   renderAuthUI();
+
+  // Helpful: update year if present
+  const yr = document.getElementById('yr');
+  if (yr) yr.textContent = new Date().getFullYear();
 }
-document.addEventListener('DOMContentLoaded', init);
+
+// Since ui.js is appended after modals are injected, DOMContentLoaded might already be fired.
+// So we handle both cases:
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
