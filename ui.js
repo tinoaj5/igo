@@ -1,4 +1,12 @@
-/* ui.js — WORKING version for Option B (index loads modals.html first, then loads ui.js) */
+/* ui.js — UPDATED
+   Goals:
+   - Fix duplicate-navigation buttons on same screen (View bids != All my walks)
+   - Hide emails everywhere (Current walks + Owner bids list)
+   - Human-friendly date/time formatting (fix ISO + 1899 time)
+   - Add Google Maps links:
+       - Jobs feed: approx area (city only)
+       - Current walk: directions (exact address)
+*/
 
 (function () {
   // prevent double boot if ui.js gets loaded twice by mistake
@@ -22,6 +30,8 @@
     return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : "");
   };
 
+  const myEmailLower = () => String((getProfile() || {}).email || "").toLowerCase().trim();
+
   function showToast(msg) {
     const t = document.getElementById("toast");
     if (!t) return;
@@ -30,6 +40,103 @@
     setTimeout(() => (t.style.display = "none"), 2200);
   }
   window.showToast = showToast;
+
+  /* ======== Date/time formatting (fix ISO + 1899 base time) ======== */
+
+  function isDateObj(x) {
+    return Object.prototype.toString.call(x) === "[object Date]" && !isNaN(x.getTime());
+  }
+
+  function parseMaybeDate(v) {
+    if (!v) return null;
+    if (isDateObj(v)) return v;
+
+    const s = String(v);
+    // ISO timestamp from JSON stringify
+    if (s.includes("T") && (s.endsWith("Z") || s.match(/\d{2}:\d{2}:\d{2}/))) {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d;
+    }
+    // yyyy-mm-dd
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const d = new Date(s + "T00:00:00");
+      if (!isNaN(d.getTime())) return d;
+    }
+    return null;
+  }
+
+  function formatNiceDate(v) {
+    const d = parseMaybeDate(v);
+    if (!d) return String(v || "");
+    try {
+      return d.toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short" });
+    } catch (_) {
+      return d.toISOString().slice(0, 10);
+    }
+  }
+
+  function formatNiceTime(v) {
+    if (!v) return "";
+    if (isDateObj(v)) {
+      const d = v;
+      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    }
+
+    const s = String(v);
+
+    // If sheet stored a "time-only" as Date (often 1899-12-30...)
+    if (s.includes("1899-12-30") || s.includes("1900-01-00") || s.includes("1900-01-01")) {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      }
+    }
+
+    // ISO datetime
+    if (s.includes("T") && (s.endsWith("Z") || s.match(/\d{2}:\d{2}:\d{2}/))) {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      }
+    }
+
+    // "HH:MM"
+    if (/^\d{1,2}:\d{2}/.test(s)) return s.slice(0, 5);
+
+    return s;
+  }
+
+  function whenLine(job) {
+    const d = formatNiceDate(job.date);
+    const t = formatNiceTime(job.time);
+    const dur = job.duration ? `${job.duration} min` : "";
+    const parts = [d, t].filter(Boolean).join(" · ");
+    return [parts, dur].filter(Boolean).join(" • ");
+  }
+
+  function jobTitle(job) {
+    // user-friendly label without exposing job_id
+    const dog = job.dog_name || "Dog";
+    const city = job.city || "";
+    return `${dog} • ${city}`.trim();
+  }
+
+  /* ======== Google Maps links ======== */
+
+  function mapsSearchLink(query) {
+    const q = String(query || "").trim();
+    if (!q) return "";
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+  }
+
+  function mapsDirectionsLink(address, city) {
+    const a = String(address || "").trim();
+    const c = String(city || "").trim();
+    const q = [a, c].filter(Boolean).join(", ");
+    if (!q) return "";
+    // directions to the exact place
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+  }
 
   /* debug toggle */
   document.addEventListener("keydown", (e) => {
@@ -96,6 +203,22 @@
     refreshOwnerJobs();
   };
   window.closeOwnerJobs = () => closeDlg("ownerJobsModal");
+
+  // NEW: opens owner jobs AND auto-expands bids for a specific job
+  window.openOwnerJobsAndBids = async (jobId) => {
+    openDlg("ownerJobsModal");
+    await refreshOwnerJobs();
+    // after render, expand bids
+    if (jobId) {
+      // small defer so DOM exists
+      setTimeout(() => {
+        const wrap = document.getElementById(`bidsWrap_${jobId}`);
+        if (wrap && wrap.style.display === "none") {
+          window.toggleBids(jobId);
+        }
+      }, 50);
+    }
+  };
 
   window.openMyBids = () => {
     openDlg("myBidsModal");
@@ -382,7 +505,6 @@
     if (walkerHintCard) walkerHintCard.style.display = isWalker ? "block" : "none";
 
     if (isOwner) await refreshOwnerLatestPreview();
-    // walker panel is OPTIONAL (only if you add walkerPanelBody / walkerPanelActions)
     if (isWalker) await refreshWalkerPanel().catch(() => {});
 
     const yr = document.getElementById("yr");
@@ -411,17 +533,17 @@
 
     const j = jobs[0];
     body.innerHTML = `
-      <div style="font-weight:800;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+      <div style="font-weight:800;">${esc(jobTitle(j))}</div>
       <div class="muted" style="font-size:12px;margin-top:4px;">
-        ${esc(j.date || "")} ${esc(j.time || "")} • ${esc(j.duration || "")} min • status: ${esc(j.status || "")}
+        ${esc(whenLine(j))} • status: ${esc(j.status || "")}
       </div>
       ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
     `;
 
+    // IMPORTANT: make “View bids” do something different than “All my walks”
     btn.textContent = "View bids";
     btn.onclick = async () => {
-      openDlg("ownerJobsModal");
-      await refreshOwnerJobs();
+      await window.openOwnerJobsAndBids(j.job_id);
     };
   }
 
@@ -438,16 +560,19 @@
     const cw = await postForm({ action: "current_walks", token });
     const current = (cw.jobs || [])[0];
     if (current) {
+      const dir = mapsDirectionsLink(current.address, current.city);
+
       body.innerHTML = `
-        <div style="font-weight:800;">Current walk: ${esc(current.dog_name || "Dog")} • ${esc(current.city || "")}</div>
+        <div style="font-weight:800;">Current walk: ${esc(jobTitle(current))}</div>
         <div class="muted" style="font-size:12px;margin-top:4px;">
-          ${esc(current.date || "")} ${esc(current.time || "")} • ${esc(current.duration || "")} min
+          ${esc(whenLine(current))}
         </div>
         ${current.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(current.notes)}</div>` : ``}
       `;
       actions.innerHTML = `
         <button class="btn btn-outline btn-small" type="button" onclick="openCurrentWalks()">Open current</button>
         <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(current.job_id)}')">Chat</button>
+        ${dir ? `<a class="btn btn-outline btn-small" href="${dir}" target="_blank" rel="noopener">Directions</a>` : ``}
       `;
       return;
     }
@@ -506,24 +631,28 @@
       return;
     }
 
-    list.innerHTML = jobs.map((j) => `
+    list.innerHTML = jobs.map((j) => {
+      const approx = mapsSearchLink(j.city); // city only
+      return `
       <div class="card" style="margin-bottom:10px;">
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(jobTitle(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(j.date || "")} ${esc(j.time || "")} • ${esc(j.duration || "")} min • max ${money(j.max_price)}
+                ${esc(whenLine(j))} • max ${money(j.max_price)}
               </div>
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               <button class="btn btn-primary btn-small" onclick="openBidSheet('${esc(j.job_id)}','${esc(j.max_price || "")}')">Bid</button>
+              ${approx ? `<a class="btn btn-outline btn-small" href="${approx}" target="_blank" rel="noopener">Approx area</a>` : ``}
             </div>
           </div>
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
   window.openBidSheet = function (jobId, maxPrice) {
@@ -569,9 +698,9 @@
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(jobTitle(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(j.date || "")} ${esc(j.time || "")} • ${esc(j.duration || "")} min • status: <b>${esc(j.status || "")}</b>
+                ${esc(whenLine(j))} • status: <b>${esc(j.status || "")}</b>
               </div>
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
             </div>
@@ -618,7 +747,7 @@
     }
 
     wrap.innerHTML = bids.map((b) => {
-      const initials = (b.walker_name || b.walker_email || "W").trim().slice(0, 1).toUpperCase();
+      const initials = (b.walker_name || "W").trim().slice(0, 1).toUpperCase();
       const status = String(b.status || "").toLowerCase();
       const counterInfo = b.counter_amount
         ? `<div class="muted" style="font-size:12px;margin-top:4px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
@@ -637,14 +766,13 @@
                   <div>
                     <div style="font-weight:900;">${esc(b.walker_name || "WALKER")}</div>
                     <div class="muted" style="font-size:12px;">
-                      ${esc(b.walker_city || "")} • <span style="opacity:.85">${esc(b.walker_email || "")}</span>
+                      ${esc(b.walker_city || "")}
                     </div>
                   </div>
                   <div style="font-weight:900;font-size:16px;">${money(b.amount)}</div>
                 </div>
 
                 <div class="muted" style="font-size:12px;margin-top:6px;">Status: <b>${esc(b.status)}</b></div>
-                <div class="muted" style="font-size:12px;margin-top:6px;">Bio & reviews slot (coming soon)</div>
                 ${counterInfo}
 
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
@@ -807,27 +935,31 @@
       return;
     }
 
-    list.innerHTML = jobs.map((j) => `
+    list.innerHTML = jobs.map((j) => {
+      const dir = mapsDirectionsLink(j.address, j.city); // exact directions (assigned walk only)
+      return `
       <div class="card" style="margin-bottom:12px;">
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+              <div style="font-weight:900;">${esc(jobTitle(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(j.date || "")} ${esc(j.time || "")} • ${esc(j.duration || "")} min
+                ${esc(whenLine(j))}
               </div>
               ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
               <div class="muted" style="font-size:12px;margin-top:6px;">
-                Owner: ${esc(j.owner_email || "")} • Walker: ${esc(j.assigned_walker_email || "")}
+                Chat is available here.
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(j.job_id)}')">Chat</button>
+              ${dir ? `<a class="btn btn-outline btn-small" href="${dir}" target="_blank" rel="noopener">Directions</a>` : ``}
             </div>
           </div>
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
 
     await refreshWalkerPanel().catch(() => {});
   }
@@ -836,7 +968,7 @@
   window.openChat = async function (jobId) {
     CURRENT_CHAT_JOB_ID = jobId;
     const head = document.getElementById("chatHeader");
-    if (head) head.textContent = `Chat for walk ${jobId}`;
+    if (head) head.textContent = `Chat`;
     openDlg("chatModal");
     await loadChat();
   };
@@ -866,7 +998,7 @@
 
     box.innerHTML = msgs.map((m) => `
       <div class="chat-msg">
-        <div class="chat-meta"><b>${esc(m.sender_name || m.sender_email)}</b> · <span>${esc(new Date(m.ts).toLocaleString())}</span></div>
+        <div class="chat-meta"><b>${esc(m.sender_name || "User")}</b> · <span>${esc(new Date(m.ts).toLocaleString())}</span></div>
         <div class="chat-body">${esc(m.body)}</div>
       </div>
     `).join("");
