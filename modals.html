@@ -1,303 +1,238 @@
-<!-- SIGN IN -->
-<dialog id="signinModal">
-  <div class="modal-head">
-    <span>Sign in to igo</span>
-    <button class="btn btn-ghost btn-small" onclick="closeSignin()">✕</button>
-  </div>
-  <div class="modal-body">
-    <form id="signinForm">
-      <div>
-        <label>Email</label>
-        <input type="email" name="email" placeholder="you@email.com" required>
-      </div>
-      <button class="btn btn-primary" type="submit">Send code</button>
-      <p class="muted" style="font-size:11px;margin-top:4px;">
-        We’ll email you a 6-digit code. For testing you can directly use <b>555555</b>.
-      </p>
-    </form>
+<!-- modals.html — Option A -->
 
-    <form id="codeForm" style="display:none;margin-top:12px;">
-      <div>
-        <label>Enter 6-digit code</label>
-        <input name="code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6"
-               placeholder="123456" required
-               oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
-      </div>
-      <button class="btn btn-primary" type="submit">Verify</button>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-        <button type="button" class="btn btn-ghost btn-small" id="resendBtn" disabled>
-          Resend (<span id="resendT">30</span>s)
-        </button>
-      </div>
-    </form>
+<!-- SIGN IN -->
+<dialog id="signinModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeSignin()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 style="margin:0;">Sign in</h2>
+      <p class="muted" style="margin-top:6px;">We’ll email you a 6-digit code. (Testing: <b>555555</b>)</p>
+
+      <form id="signinForm" style="margin-top:12px;display:grid;gap:10px;">
+        <label class="muted" style="font-size:12px;">Email</label>
+        <input name="email" type="email" required placeholder="you@example.com"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+        <button class="btn btn-primary" type="submit">Send code</button>
+      </form>
+
+      <form id="codeForm" style="margin-top:14px;display:none;gap:10px;">
+        <label class="muted" style="font-size:12px;">Code</label>
+        <input name="code" type="text" inputmode="numeric" maxlength="6" required placeholder="123456"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+        <button class="btn btn-primary" type="submit">Verify</button>
+
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          Resend in <span id="resendT">30</span>s
+          <button id="resendBtn" type="button" class="btn btn-ghost btn-small" style="margin-left:6px;">Resend</button>
+        </div>
+      </form>
+    </div>
   </div>
 </dialog>
 
 <!-- PROFILE -->
-<dialog id="profileModal">
-  <div class="modal-head">
-    <span>Your igo profile</span>
-    <button class="btn btn-ghost btn-small" onclick="closeProfile()">✕</button>
-  </div>
-  <div class="modal-body">
-    <form id="profileForm">
-      <div class="row">
-        <div>
-          <label>Full name</label>
-          <input name="name" placeholder="Jane Doe" required>
+<dialog id="profileModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeProfile()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 style="margin:0;">Profile</h2>
+      <p class="muted" style="margin-top:6px;">Your profile helps matching. Emails are never shown to others.</p>
+
+      <form id="profileForm" style="margin-top:12px;display:grid;gap:10px;">
+        <label class="muted" style="font-size:12px;">Name</label>
+        <input name="name" type="text" placeholder="Your name"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Phone</label>
+        <input name="phone" type="text" placeholder="+41..."
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">City</label>
+        <input name="city" type="text" placeholder="Lausanne"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Address (used for directions when assigned)</label>
+        <input name="address" type="text" placeholder="Street 12"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Payment method (optional)</label>
+        <input name="pay_method" type="text" placeholder="Cash / TWINT / ..."
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Bio</label>
+        <textarea name="bio" rows="3" placeholder="A few lines about you…"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;"></textarea>
+
+        <div style="display:flex;gap:14px;align-items:center;margin-top:6px;">
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" name="is_owner"> Owner
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" name="is_walker"> Walker
+          </label>
+          <input type="hidden" name="role" value="">
         </div>
-        <div>
-          <label>Email</label>
-          <input name="email" type="email" placeholder="you@email.com" required>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Phone</label>
-          <input name="phone" placeholder="+41 79 123 45 67" required>
-        </div>
-        <div>
-          <label>City</label>
-          <input name="city" placeholder="Zürich / Genève / Basel" required>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Role</label>
-          <div class="role-checkboxes">
-            <label class="checkbox-inline">
-              <input type="checkbox" name="is_owner"> Owner
-            </label>
-            <label class="checkbox-inline">
-              <input type="checkbox" name="is_walker"> Walker
-            </label>
-          </div>
-          <input type="hidden" name="role">
-        </div>
-        <div>
-          <label>Preferred pay method</label>
-          <select name="pay_method">
-            <option>Cash</option>
-            <option>Bank transfer</option>
-          </select>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Address</label>
-          <input name="address" placeholder="Street, number">
-        </div>
-        <div>
-          <label>Short note</label>
-          <input name="bio" placeholder="Anything owners/walkers should know…">
-        </div>
-      </div>
-      <button class="btn btn-primary" type="submit">Save profile</button>
-      <p class="muted" style="font-size:11px;margin-top:4px;">
-        Tip: tick both owner & walker if you sometimes need walks and sometimes offer them.
-      </p>
-    </form>
+
+        <div id="profileMapsHint" class="muted" style="font-size:12px;margin-top:6px;"></div>
+
+        <button class="btn btn-primary" type="submit">Save profile</button>
+      </form>
+    </div>
   </div>
 </dialog>
 
 <!-- OWNER POST WALK -->
-<dialog id="ownerModal">
-  <div class="modal-head">
-    <span>Post a walk as owner</span>
-    <button class="btn btn-ghost btn-small" onclick="closeOwnerModal()">✕</button>
-  </div>
-  <div class="modal-body">
-    <form id="ownerForm">
-      <div class="row">
-        <div>
-          <label>Your name</label>
-          <input name="name" required>
+<dialog id="ownerModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeOwnerModal()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 style="margin:0;">Post a walk</h2>
+      <p class="muted" style="margin-top:6px;">Walkers in your city will be notified.</p>
+
+      <form id="ownerForm" style="margin-top:12px;display:grid;gap:10px;">
+        <label class="muted" style="font-size:12px;">Your name</label>
+        <input name="name" type="text" placeholder="Owner name"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Phone (shown in current walk only)</label>
+        <input name="phone" type="text" placeholder="+41..."
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">City</label>
+        <input name="city" type="text" required placeholder="Lausanne"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Address (exact — shown only after acceptance)</label>
+        <input name="address" type="text" placeholder="Street 12"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label class="muted" style="font-size:12px;">Date</label>
+            <input id="date_owner" name="date" type="date" required
+              style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+          </div>
+          <div>
+            <label class="muted" style="font-size:12px;">Time</label>
+            <input name="time" type="time" required
+              style="width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+          </div>
         </div>
-        <div>
-          <label>Your email</label>
-          <input name="email" type="email" required>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Phone</label>
-          <input name="phone" required>
-        </div>
-        <div>
-          <label>City</label>
-          <input name="city" id="city_owner" placeholder="Zürich" required>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Address</label>
-          <input name="address" placeholder="Street, number" required>
-        </div>
-        <div>
-          <label>Dog name</label>
-          <input name="dog_name" placeholder="Biscuit" required>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Dog size</label>
-          <select name="dog_size" required>
-            <option value="">Choose…</option>
-            <option>Small</option>
-            <option>Medium</option>
-            <option>Large</option>
-          </select>
-        </div>
-        <div>
-          <label>Temperament</label>
-          <select name="temperament" required>
-            <option value="">Choose…</option>
-            <option>Calm</option>
-            <option>Energetic</option>
-            <option>Shy</option>
-            <option>Reactive</option>
-          </select>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Date</label>
-          <input type="date" name="date" id="date_owner" required>
-        </div>
-        <div>
-          <label>Time</label>
-          <input type="time" name="time" id="time_owner" required>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Duration (minutes)</label>
-          <select name="duration" required>
-            <option value="">Choose…</option>
-            <option>30</option>
-            <option>45</option>
-            <option>60</option>
-            <option>90</option>
-          </select>
-        </div>
-        <div>
-          <label>Max price (CHF)</label>
-          <input type="number" name="max_price" min="1" step="1" placeholder="25">
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Matching mode</label>
-          <select name="mode">
-            <option value="bidding">Let walkers bid (cheaper, slower)</option>
-            <option value="instant">First walker to accept (faster)</option>
-          </select>
-        </div>
-        <div>
-          <label>Pay method</label>
-          <select name="pay_method">
-            <option>Cash</option>
-            <option>Bank transfer</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label>Notes</label>
-        <textarea name="notes" placeholder="Leash reactive, avoid dog parks…"></textarea>
-      </div>
-      <div>
-        <label>Extra details</label>
-        <textarea name="extra" placeholder="Building code, preferred route, etc."></textarea>
-      </div>
-      <div class="inline-check">
-        <input type="checkbox" id="ownerAgree" required>
-        <label for="ownerAgree" style="margin:0;">
-          I understand igo is only a matching hub. igo does not provide insurance or guarantees.
-        </label>
-      </div>
-      <button class="btn btn-primary" type="submit">Post walk</button>
-    </form>
+
+        <label class="muted" style="font-size:12px;">Duration (minutes)</label>
+        <input name="duration" type="number" min="10" step="5" required placeholder="60"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Dog name</label>
+        <input name="dog_name" type="text" placeholder="Biscuit"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Max price (optional)</label>
+        <input name="max_price" type="number" min="1" step="1" placeholder="30"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+
+        <label class="muted" style="font-size:12px;">Notes (optional)</label>
+        <textarea name="notes" rows="3" placeholder="Any important details…"
+          style="padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;"></textarea>
+
+        <button class="btn btn-primary" type="submit">Post walk</button>
+      </form>
+    </div>
   </div>
 </dialog>
 
-<!-- JOBS -->
-<dialog id="jobsModal">
-  <div class="modal-head">
-    <span>Open walks near you</span>
-    <button class="btn btn-ghost btn-small" onclick="closeJobs()">✕</button>
-  </div>
-  <div class="modal-body">
-    <p class="muted" style="font-size:11px;margin-bottom:6px;">
-      We prioritise walks matching your profile city. You can only have one active walk at a time.
-    </p>
-    <div id="jobsList" class="jobs-list"></div>
-    <div id="jobsEmpty" class="muted" style="font-size:13px;display:none;">No open walks yet.</div>
+<!-- WALKER JOBS -->
+<dialog id="jobsModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeJobs()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 style="margin:0;">Open walks</h2>
+      <p class="muted" style="margin-top:6px;">Only approximate location until a walk is accepted.</p>
+
+      <div id="jobsEmpty" class="muted" style="display:none;margin-top:12px;">No open walks right now.</div>
+      <div id="jobsList" style="margin-top:12px;"></div>
+    </div>
   </div>
 </dialog>
 
 <!-- OWNER JOBS -->
-<dialog id="ownerJobsModal">
-  <div class="modal-head">
-    <span>My walk requests</span>
-    <button class="btn btn-ghost btn-small" onclick="closeOwnerJobs()">✕</button>
-  </div>
-  <div class="modal-body">
-    <p class="muted" style="font-size:11px;margin-bottom:6px;">
-      Your walks + their bids (accept/counter directly inside the list).
-    </p>
-    <div id="ownerJobsList" class="owner-jobs-list"></div>
-    <div id="ownerJobsEmpty" class="muted" style="font-size:13px;display:none;">You haven’t created any walks yet.</div>
+<dialog id="ownerJobsModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeOwnerJobs()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 style="margin:0;">My walks</h2>
+      <p class="muted" style="margin-top:6px;">Accept or counter bids. Emails are never shared.</p>
+
+      <div id="ownerJobsEmpty" class="muted" style="display:none;margin-top:12px;">No walks posted yet.</div>
+      <div id="ownerJobsList" style="margin-top:12px;"></div>
+    </div>
   </div>
 </dialog>
 
 <!-- MY BIDS -->
-<dialog id="myBidsModal">
-  <div class="modal-head">
-    <span>My bids</span>
-    <button class="btn btn-ghost btn-small" onclick="closeMyBids()">✕</button>
-  </div>
-  <div class="modal-body">
-    <p class="muted" style="font-size:11px;margin-bottom:6px;">
-      If an owner countered you, you can accept or decline here.
-    </p>
-    <div id="myBidsList" class="my-bids-list"></div>
-    <div id="myBidsEmpty" class="muted" style="font-size:13px;display:none;">No bids yet.</div>
+<dialog id="myBidsModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeMyBids()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 style="margin:0;">My bids</h2>
+      <p class="muted" style="margin-top:6px;">If the owner counters, you can accept or decline here.</p>
+
+      <div id="myBidsEmpty" class="muted" style="display:none;margin-top:12px;">No bids yet.</div>
+      <div id="myBidsList" style="margin-top:12px;"></div>
+    </div>
   </div>
 </dialog>
 
 <!-- CURRENT WALKS -->
-<dialog id="currentWalksModal">
-  <div class="modal-head">
-    <span>Current walks</span>
-    <button class="btn btn-ghost btn-small" onclick="closeCurrentWalks()">✕</button>
-  </div>
-  <div class="modal-body">
-    <p class="muted" style="font-size:11px;margin-bottom:6px;">
-      Walks that are assigned and not completed. Chat is available here.
-    </p>
-    <div id="currentWalksList" class="current-walks-list"></div>
-    <div id="currentWalksEmpty" class="muted" style="font-size:13px;display:none;">No active walks right now.</div>
+<dialog id="currentWalksModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeCurrentWalks()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 style="margin:0;">Current walks</h2>
+      <p class="muted" style="margin-top:6px;">Directions become available after acceptance.</p>
+
+      <div id="currentWalksEmpty" class="muted" style="display:none;margin-top:12px;">No current walks.</div>
+      <div id="currentWalksList" style="margin-top:12px;"></div>
+    </div>
   </div>
 </dialog>
 
 <!-- CHAT -->
-<dialog id="chatModal">
-  <div class="modal-head">
-    <span>Walk chat</span>
-    <button class="btn btn-ghost btn-small" onclick="closeChat()">✕</button>
-  </div>
-  <div class="modal-body">
-    <div class="chat-wrapper">
-      <div class="chat-header" id="chatHeader">Owner & walker chat for this walk.</div>
-      <div id="chatMessages" class="chat-messages">
-        <div class="chat-empty">Loading messages…</div>
-      </div>
-      <form id="chatForm">
-        <div class="chat-form-row">
-          <textarea name="body" placeholder="Type a message…" required></textarea>
-          <button class="btn btn-primary btn-small" type="submit">Send</button>
-          <button class="btn btn-outline btn-small" type="button" onclick="loadChat()">Refresh</button>
-        </div>
+<dialog id="chatModal" class="modal">
+  <form method="dialog" class="modal-x">
+    <button class="btn btn-ghost btn-small" type="button" onclick="closeChat()">✕</button>
+  </form>
+
+  <div class="modal-card card">
+    <div class="card-inner">
+      <h2 id="chatHeader" style="margin:0;">Chat</h2>
+      <div id="chatMessages" style="margin-top:10px;max-height:320px;overflow:auto;"></div>
+
+      <form id="chatForm" style="margin-top:12px;display:flex;gap:10px;">
+        <input name="body" type="text" placeholder="Type a message…"
+          style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
+        <button class="btn btn-primary" type="submit">Send</button>
       </form>
     </div>
   </div>
