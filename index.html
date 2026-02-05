@@ -56,6 +56,18 @@
               <button class="btn btn-ghost" type="button" onclick="openMyBids()">My bids</button>
             </div>
 
+            <!-- ✅ Values box -->
+            <div class="dash-mini card" style="margin-top:14px;">
+              <div class="card-inner">
+                <div class="dash-mini-title">Our values</div>
+                <div class="muted" style="font-size:12px;line-height:1.5;margin-top:6px;">
+                  • For every pet to have a good life<br/>
+                  • No pets left alone<br/>
+                  • For our pets to look back and feel they had a good life
+                </div>
+              </div>
+            </div>
+
             <!-- Owner “latest walk” shortcut -->
             <div id="ownerLatestCard" class="dash-mini card" style="margin-top:14px; display:none;">
               <div class="card-inner">
@@ -71,13 +83,11 @@
               </div>
             </div>
 
-            <!-- Walker panel (we will replace the inside via JS) -->
+            <!-- Walker panel -->
             <div id="walkerHintCard" class="dash-mini card" style="margin-top:14px; display:none;">
               <div class="card-inner">
                 <div class="dash-mini-title" id="walkerPanelTitle">Walker</div>
-                <div class="dash-mini-body" id="walkerPanelBody">
-                  Loading…
-                </div>
+                <div class="dash-mini-body" id="walkerPanelBody">Loading…</div>
                 <div class="dash-mini-actions" id="walkerPanelActions"></div>
               </div>
             </div>
@@ -180,7 +190,7 @@
   </div>
 
   <div id="toast" class="toast">Saved.</div>
-  <div id="debug">
+  <div id="debug" style="display:none;">
     <b>Last server response</b><br/>
     <small>Toggle with Ctrl/Cmd + D</small>
     <pre id="dbgpre">–</pre>
