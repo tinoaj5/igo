@@ -1,4 +1,4 @@
-/* ui.js — STABLE FIX (ISO date/time cleanup + robust autofill + friendly labels)
+/* ui.js — STABLE FIX (friendly labels + ISO date/time cleanup + robust autofill)
    Drop-in replacement.
 */
 (function () {
@@ -76,8 +76,7 @@
     } catch (_) {}
   }
 
-  /* ============ date/time normalization (fixes ...Z + 1899-12-30 time) ============ */
-
+  /* ============ date/time normalization ============ */
   function isYmd(s) {
     return /^\d{4}-\d{2}-\d{2}$/.test(String(s || "").trim());
   }
@@ -85,24 +84,20 @@
     return /^\d{2}:\d{2}/.test(String(s || "").trim());
   }
 
-  // Convert anything → YYYY-MM-DD or "".
   function normalizeDate(value) {
     const s = String(value || "").trim();
     if (!s) return "";
     if (isYmd(s)) return s;
 
-    // If ISO like 2026-02-05T23:00:00.000Z
     if (s.includes("T")) {
       const d = new Date(s);
       if (Number.isFinite(d.getTime())) {
         return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
       }
-      // fallback: take left part
       const left = s.split("T")[0];
       return isYmd(left) ? left : "";
     }
 
-    // If something else - last fallback
     const d = new Date(s);
     if (Number.isFinite(d.getTime())) {
       return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -110,35 +105,29 @@
     return "";
   }
 
-  // Convert anything → HH:MM or "".
   function normalizeTime(value) {
     const s = String(value || "").trim();
     if (!s) return "";
     if (isHm(s)) return s.slice(0, 5);
 
-    // Google Sheets time-only stored as 1899-12-30T17:38:00.000Z (or local)
     if (s.startsWith("1899-12-30") && s.includes("T")) {
       const t = s.split("T")[1] || "";
       const hhmm = t.slice(0, 5);
       return isHm(hhmm) ? hhmm : "";
     }
 
-    // If ISO datetime like 2026-02-05T23:00:00.000Z
     if (s.includes("T")) {
       const d = new Date(s);
       if (Number.isFinite(d.getTime())) {
         return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
       }
-      // fallback parse from the string directly
       const t = s.split("T")[1] || "";
       const hhmm = t.slice(0, 5);
       return isHm(hhmm) ? hhmm : "";
     }
 
-    // If plain time with seconds
     if (/^\d{2}:\d{2}:\d{2}/.test(s)) return s.slice(0, 5);
 
-    // last fallback
     const d = new Date(s);
     if (Number.isFinite(d.getTime())) {
       return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -146,18 +135,33 @@
     return "";
   }
 
-  function jobWhen(job) {
+  function shortWhen(job) {
     const d = normalizeDate(job?.date);
     const t = normalizeTime(job?.time);
-    return `${d} ${t}`.trim();
+    if (!d && !t) return "";
+
+    // nicer date label (Thu 06 Feb)
+    if (d) {
+      const [Y, M, D] = d.split("-").map(Number);
+      const dt = new Date(Y, (M || 1) - 1, D || 1);
+      const dNice = dt.toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short" });
+      return `${dNice}${t ? ` • ${t}` : ""}`;
+    }
+    return t;
   }
 
-  function jobLabel(job) {
-    const code = job?.job_code ? `#${job.job_code}` : "";
+  // ✅ Friendly title shown to users (NO #CODE)
+  function jobTitle(job) {
     const dog = job?.dog_name ? String(job.dog_name) : "Dog";
     const city = job?.city ? String(job.city) : "";
-    const when = jobWhen(job);
-    return [code, dog, city, when].filter(Boolean).join(" · ");
+    const when = shortWhen(job);
+    return [dog, city, when].filter(Boolean).join(" • ");
+  }
+
+  // ✅ Small optional reference (never part of title)
+  function jobRef(job) {
+    const code = job?.job_code ? String(job.job_code).trim() : "";
+    return code ? `Ref: ${code}` : "";
   }
 
   /* ============ maps helper ============ */
@@ -167,7 +171,7 @@
     return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
   }
 
-  /* ============ time helpers (for posting guard) ============ */
+  /* ============ time helpers (posting guard) ============ */
   function isoToday() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -188,26 +192,23 @@
     return (ms - Date.now()) / 60000;
   }
 
-  /* ============ robust form field setter (fixes autofill mismatch) ============ */
+  /* ============ robust form field setter (autofill) ============ */
   function setField(form, keys, value, { onlyIfEmpty = true } = {}) {
     if (!form || value == null) return false;
     const val = String(value).trim();
     if (!val) return false;
 
     const tryOne = (k) => {
-      // 1) by name
       const elByName = form.elements?.[k];
       if (elByName && typeof elByName.value !== "undefined") {
         if (!onlyIfEmpty || !String(elByName.value || "").trim()) elByName.value = val;
         return true;
       }
-      // 2) by id
       const elById = document.getElementById(k);
       if (elById && typeof elById.value !== "undefined") {
         if (!onlyIfEmpty || !String(elById.value || "").trim()) elById.value = val;
         return true;
       }
-      // 3) query selector fallback
       const elQS = form.querySelector?.(`[name="${k}"], #${CSS.escape(k)}`);
       if (elQS && typeof elQS.value !== "undefined") {
         if (!onlyIfEmpty || !String(elQS.value || "").trim()) elQS.value = val;
@@ -252,12 +253,16 @@
 
   /* dashboard switching */
   function showSignedInUI() {
-    document.getElementById("dash")?.style && (document.getElementById("dash").style.display = "block");
-    document.getElementById("marketing")?.style && (document.getElementById("marketing").style.display = "none");
+    const dash = document.getElementById("dash");
+    const marketing = document.getElementById("marketing");
+    if (dash) dash.style.display = "block";
+    if (marketing) marketing.style.display = "none";
   }
   function showSignedOutUI() {
-    document.getElementById("dash")?.style && (document.getElementById("dash").style.display = "none");
-    document.getElementById("marketing")?.style && (document.getElementById("marketing").style.display = "block");
+    const dash = document.getElementById("dash");
+    const marketing = document.getElementById("marketing");
+    if (dash) dash.style.display = "none";
+    if (marketing) marketing.style.display = "block";
   }
 
   function computeRoleFlags(prof) {
@@ -472,13 +477,12 @@
     if (form.elements["is_walker"]) form.elements["is_walker"].checked = isWalker;
   }
 
-  // ✅ Robust autofill (works even if your input names differ)
+  // Robust autofill
   function prefillOwnerFromProfile() {
     const prof = getProfile() || {};
     const form = document.getElementById("ownerForm");
     if (!form) return;
 
-    // common field name variants
     setField(form, ["name", "owner_name"], prof.name);
     setField(form, ["phone", "owner_phone"], prof.phone);
     setField(form, ["email", "owner_email"], prof.email);
@@ -486,18 +490,15 @@
     setField(form, ["address"], prof.address);
     setField(form, ["pay_method", "payment", "payment_method"], prof.pay_method);
 
-    // optional
     setField(form, ["dog_name"], prof.dog_name);
     setField(form, ["dog_size"], prof.dog_size);
     setField(form, ["temperament"], prof.temperament);
   }
 
   function setDateMinTodayAndDefaultTime() {
-    // try ids first, then names
     const form = document.getElementById("ownerForm");
     const today = isoToday();
 
-    // date
     const dateEl =
       document.getElementById("date_owner") ||
       form?.elements?.["date_owner"] ||
@@ -507,7 +508,6 @@
       if (!String(dateEl.value || "").trim()) dateEl.value = today;
     }
 
-    // time
     const timeEl =
       document.getElementById("time_owner") ||
       form?.elements?.["time_owner"] ||
@@ -522,7 +522,9 @@
     const prof = getProfile() || {};
     const { isOwner, isWalker } = computeRoleFlags(prof);
 
-    document.getElementById("dashTitle") && (document.getElementById("dashTitle").textContent = `Welcome, ${prof.name || "there"}.`);
+    const dashTitle = document.getElementById("dashTitle");
+    if (dashTitle) dashTitle.textContent = `Welcome, ${prof.name || "there"}.`;
+
     const dashSub = document.getElementById("dashSub");
     if (dashSub) {
       dashSub.textContent =
@@ -565,9 +567,10 @@
 
     const j = jobs[0];
     body.innerHTML = `
-      <div style="font-weight:900;">${esc(jobLabel(j))}</div>
+      <div style="font-weight:900;font-size:16px;">${esc(jobTitle(j))}</div>
       <div class="muted" style="font-size:12px;margin-top:6px;">
         ${esc(j.duration || "")} min • status: <b>${esc(j.status || "")}</b>
+        ${jobRef(j) ? ` • ${esc(jobRef(j))}` : ``}
       </div>
       ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
     `;
@@ -593,7 +596,9 @@
     if (current) {
       body.innerHTML = `
         <div style="font-weight:900;">Current walk</div>
-        <div class="muted" style="font-size:12px;margin-top:6px;">${esc(jobLabel(current))}</div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          ${esc(jobTitle(current))}${jobRef(current) ? ` • ${esc(jobRef(current))}` : ``}
+        </div>
       `;
       actions.innerHTML = `
         <button class="btn btn-outline btn-small" type="button" onclick="openCurrentWalks()">Open</button>
@@ -617,8 +622,7 @@
 
     body.innerHTML = `
       <div style="font-weight:900;">Latest bid</div>
-      <div class="muted" style="font-size:12px;margin-top:6px;">Walk: ${esc(b.job_id)}</div>
-      <div class="muted" style="font-size:12px;margin-top:4px;">
+      <div class="muted" style="font-size:12px;margin-top:6px;">
         Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b> ${counterLine}
       </div>
     `;
@@ -662,9 +666,10 @@
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(jobTitle(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:6px;">
                 ${esc(j.duration || "")} min • max ${money(j.max_price)}
+                ${jobRef(j) ? ` • ${esc(jobRef(j))}` : ``}
               </div>
               ${j.dog_size ? `<div class="muted" style="font-size:12px;margin-top:6px;">Dog size: <b>${esc(j.dog_size)}</b></div>` : ``}
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
@@ -724,9 +729,10 @@
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(jobTitle(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:6px;">
                 Duration: ${esc(j.duration || "")} min • Status: <b>${esc(j.status || "")}</b>
+                ${jobRef(j) ? ` • ${esc(jobRef(j))}` : ``}
               </div>
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
             </div>
@@ -896,9 +902,10 @@
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(jobTitle(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:6px;">
                 ${esc(j.duration || "")} min
+                ${jobRef(j) ? ` • ${esc(jobRef(j))}` : ``}
               </div>
               ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:8px;">${esc(j.notes)}</div>` : ``}
               <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -914,7 +921,7 @@
     }).join("");
   }
 
-  /* ============ chat (no emails) ============ */
+  /* ============ chat ============ */
   window.openChat = async function (jobId) {
     CURRENT_CHAT_JOB_ID = jobId;
     const head = document.getElementById("chatHeader");
@@ -970,21 +977,9 @@
     wireEvents();
     setDateMinTodayAndDefaultTime();
     renderAuthUI();
+
     const yr = document.getElementById("yr");
     if (yr) yr.textContent = new Date().getFullYear();
-  }
-
-  function showSignedInUI() {
-    const dash = document.getElementById("dash");
-    const marketing = document.getElementById("marketing");
-    if (dash) dash.style.display = "block";
-    if (marketing) marketing.style.display = "none";
-  }
-  function showSignedOutUI() {
-    const dash = document.getElementById("dash");
-    const marketing = document.getElementById("marketing");
-    if (dash) dash.style.display = "none";
-    if (marketing) marketing.style.display = "block";
   }
 
   waitForModalsThenInit();
