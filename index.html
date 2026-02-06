@@ -51,20 +51,33 @@
           <div class="card hero-info-card">
             <h2>How igo works</h2>
             <ol class="numbered-list">
-              <li>Sign in with email (we send a 6-digit code).</li>
-              <li>Set your profile: owner, walker, or both.</li>
-              <li>Owners post walks; walkers see them by city.</li>
-              <li>Walkers bid or accept; once assigned, address + chat unlock.</li>
+              <li>Sign in with your email — we send a 6-digit code, no password.</li>
+              <li>Choose your role: dog owner, walker, or both.</li>
+              <li>Owners post walks with time, city, price, and dog info.</li>
+              <li>Walkers in the same city see the walk and bid or accept.</li>
+              <li>Once a bid is accepted, exact address & chat unlock for owner + walker.</li>
+              <li>After the walk, the owner marks it as done. That’s it.</li>
             </ol>
-            <h3>Why it’s simple</h3>
+
+            <h3>Why I built igo</h3>
+            <p class="footnote" style="margin-bottom:0.4rem;">
+              This project started because organising dog walks in chats was messy:
+              wrong times, wrong places, lost messages. I wanted something tiny,
+              honest and practical — no big “platform”, just a clean way to match
+              people who love dogs with people who need help.
+            </p>
+
+            <h3>Our values</h3>
             <ul class="bullet-list">
-              <li>Exact address is only shared after a walk is accepted.</li>
-              <li>City-based emails for walkers — no spam from other cities.</li>
-              <li>Clear status: open → assigned → done.</li>
-              <li>No passwords. No app install. Just the web.</li>
+              <li><strong>Local first.</strong> You only see walks in your city, not spam from everywhere.</li>
+              <li><strong>Privacy by default.</strong> Exact address and email are only used when a walk is accepted.</li>
+              <li><strong>Clear rules.</strong> Time windows are strict: post within 4h of start, accept/counter up to 30 min before.</li>
+              <li><strong>Honest money.</strong> Owners see bids clearly; walkers see counters clearly. No hidden fees here.</li>
+              <li><strong>Dogs first.</strong> Everything is built around what is safest & clearest for the dog and the people.</li>
             </ul>
             <p class="footnote">
-              igo does not provide insurance or take responsibility for the walk. It's only a matching tool.
+              igo does not provide insurance or take legal responsibility for the walk.
+              It’s a tiny matching tool you can decide to use with people you trust.
             </p>
           </div>
         </div>
@@ -87,7 +100,7 @@
               <button class="btn btn-outline" id="btn-go-my-bids">My bids</button>
             </div>
             <p class="hint">
-              Tip: you can open the debug box with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>D</kbd>.
+              Tip: open the debug box with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>D</kbd> to see raw API responses.
             </p>
           </div>
 
@@ -111,6 +124,18 @@
             <div id="dashboard-current-content" class="empty-state">
               <span>– Nothing active right now.</span>
             </div>
+          </div>
+        </div>
+
+        <!-- New: explainer box for owner / walker -->
+        <div class="card" id="card-how-dashboard">
+          <h3>How igo works for you</h3>
+          <div class="form-actions" style="margin-bottom:0.4rem;">
+            <button class="btn btn-small btn-primary" id="btn-how-owner">Owner view</button>
+            <button class="btn btn-small btn-outline" id="btn-how-walker">Walker view</button>
+          </div>
+          <div class="small-label" id="how-text">
+            <!-- JS will fill this with the owner/walker explanation -->
           </div>
         </div>
       </section>
@@ -324,8 +349,14 @@
           <form id="form-login-code" class="form">
             <div class="form-field">
               <label for="login-code">6-digit code</label>
-              <input type="text"id="login-code" maxlength="6" inputmode="numeric"required
-                />
+              <input
+                type="text"
+                id="login-code"
+                maxlength="6"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                required
+              />
             </div>
             <div class="form-actions">
               <button class="btn btn-primary" type="submit">Verify</button>
