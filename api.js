@@ -1,5 +1,5 @@
 // ====== CONFIG ======
-const API_URL = "https://script.google.com/macros/s/AKfycbxMmD4GM4MR8C58OfgfvCCS_u3RfzEgr-YPQ3OUkABATnKTsXQRvnvK7Jeqadgn-crtVQ/exec"; // <-- put your Apps Script URL here
+const API_URL = "https://script.google.com/macros/s/AKfycbxMmD4GM4MR8C58OfgfvCCS_u3RfzEgr-YPQ3OUkABATnKTsXQRvnvK7Jeqadgn-crtVQ/exec"; // <-- put your Apps Script web app URL
 
 // ====== GLOBAL STATE ======
 const state = {
@@ -10,11 +10,22 @@ const state = {
   currentJobs: [],
 };
 
-// ====== DOM SHORTCUTS ======
+// ====== DOM HELPERS ======
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const on = (id, event, handler) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(event, handler);
+};
 
-// ====== BASIC HELPERS ======
+// For forms: find the first submit button in that form
+function getSubmitButton(e) {
+  const form = e.target;
+  if (!form || !form.querySelector) return null;
+  return form.querySelector('button[type="submit"]');
+}
+
+// ====== UI HELPERS ======
 function showToast(message, { error = false } = {}) {
   const el = $("#toast");
   if (!el) return;
@@ -26,14 +37,14 @@ function showToast(message, { error = false } = {}) {
     setTimeout(() => {
       el.classList.remove("show");
       setTimeout(() => el.classList.add("hidden"), 250);
-    }, 2800);
+    }, 2600);
   });
 }
 
 function setLoading(btn, isLoading) {
   if (!btn) return;
   if (isLoading) {
-    btn.dataset._origText = btn.textContent;
+    if (!btn.dataset._origText) btn.dataset._origText = btn.textContent;
     btn.textContent = "Working…";
     btn.disabled = true;
   } else {
@@ -50,9 +61,10 @@ function jobHuman(job) {
   return [code, dog, city, when].filter(Boolean).join(" · ");
 }
 
-// ====== API WRAPPER (matches backend doPost signature) ======
+// ====== API WRAPPER ======
 async function api(action, data = {}) {
   const payload = JSON.stringify({ action, ...data });
+
   const res = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -63,7 +75,8 @@ async function api(action, data = {}) {
   try {
     json = await res.json();
   } catch (e) {
-    showToast("Could not parse server response.", { error: true });
+    console.error("Error parsing JSON from server", e);
+    showToast("Server error. Try again.", { error: true });
     throw e;
   }
 
@@ -78,13 +91,12 @@ async function api(action, data = {}) {
   return json;
 }
 
-// ====== VIEW SWITCHING & NAV ======
+// ====== VIEW SWITCHING / NAV ======
 function showView(id) {
   $$(".view").forEach((v) => v.classList.remove("active"));
   const el = document.getElementById("view-" + id);
   if (el) el.classList.add("active");
 
-  // nav active classes
   $$(".nav-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.nav === id);
   });
@@ -113,25 +125,40 @@ function updateDebugPanel() {
 
 // ====== LOGIN MODAL ======
 function openLoginModal() {
-  $("#login-modal").classList.remove("hidden");
-  $("#login-step-email").classList.remove("hidden");
-  $("#login-step-code").classList.add("hidden");
-  $("#login-email-status").textContent = "";
-  $("#login-code-status").textContent = "";
-  $("#login-email").focus();
+  const modal = $("#login-modal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  const stepEmail = $("#login-step-email");
+  const stepCode = $("#login-step-code");
+  if (stepEmail && stepCode) {
+    stepEmail.classList.remove("hidden");
+    stepCode.classList.add("hidden");
+  }
+  const status1 = $("#login-email-status");
+  const status2 = $("#login-code-status");
+  if (status1) status1.textContent = "";
+  if (status2) status2.textContent = "";
+  const emailInput = $("#login-email");
+  if (emailInput) emailInput.focus();
 }
 
 function closeLoginModal() {
-  $("#login-modal").classList.add("hidden");
+  const modal = $("#login-modal");
+  if (modal) modal.classList.add("hidden");
 }
 
 function goToLoginCodeStep() {
-  $("#login-step-email").classList.add("hidden");
-  $("#login-step-code").classList.remove("hidden");
-  $("#login-code").focus();
+  const stepEmail = $("#login-step-email");
+  const stepCode = $("#login-step-code");
+  if (stepEmail && stepCode) {
+    stepEmail.classList.add("hidden");
+    stepCode.classList.remove("hidden");
+  }
+  const codeInput = $("#login-code");
+  if (codeInput) codeInput.focus();
 }
 
-// ====== PROFILE LOAD/SAVE ======
+// ====== PROFILE ======
 async function refreshProfile() {
   if (!state.token) return;
   const res = await api("get_profile", { token: state.token });
@@ -141,27 +168,48 @@ async function refreshProfile() {
 }
 
 function fillProfileForm() {
-  if (!state.profile) return;
-  $("#profile-email").value = state.profile.email || "";
-  $("#profile-name").value = state.profile.name || "";
-  $("#profile-phone").value = state.profile.phone || "";
-  $("#profile-city").value = state.profile.city || "";
-  $("#profile-address").value = state.profile.address || "";
-  $("#profile-pay").value = state.profile.pay_method || "";
-  $("#profile-bio").value = state.profile.bio || "";
-  const role = state.profile.role || "";
-  $("#profile-role").value = role.toLowerCase().includes("owner") && role.toLowerCase().includes("walker")
-    ? "owner, walker"
-    : role.toLowerCase().includes("owner")
-    ? "owner"
-    : role.toLowerCase().includes("walker")
-    ? "walker"
-    : "";
+  const p = state.profile || {};
+  const emailEl = $("#profile-email");
+  if (emailEl) emailEl.value = p.email || "";
+
+  const nameEl = $("#profile-name");
+  if (nameEl) nameEl.value = p.name || "";
+
+  const phoneEl = $("#profile-phone");
+  if (phoneEl) phoneEl.value = p.phone || "";
+
+  const cityEl = $("#profile-city");
+  if (cityEl) cityEl.value = p.city || "";
+
+  const addrEl = $("#profile-address");
+  if (addrEl) addrEl.value = p.address || "";
+
+  const payEl = $("#profile-pay");
+  if (payEl) payEl.value = p.pay_method || "";
+
+  const bioEl = $("#profile-bio");
+  if (bioEl) bioEl.value = p.bio || "";
+
+  const roleEl = $("#profile-role");
+  if (roleEl) {
+    const role = p.role || "";
+    const lower = role.toLowerCase();
+    if (lower.includes("owner") && lower.includes("walker")) {
+      roleEl.value = "owner, walker";
+    } else if (lower.includes("owner")) {
+      roleEl.value = "owner";
+    } else if (lower.includes("walker")) {
+      roleEl.value = "walker";
+    } else {
+      roleEl.value = "";
+    }
+  }
+
   const label = $("#role-label");
   if (label) {
     const parts = [];
-    if (String(state.profile.is_owner) === "1") parts.push("Owner");
-    if (String(state.profile.is_walker) === "1") parts.push("Walker");
+    if (String(p.is_owner) === "1") parts.push("Owner");
+    if (String(p.is_walker) === "1") parts.push("Walker");
     label.textContent = parts.length ? parts.join(" · ") : "No roles selected yet.";
   }
 }
@@ -169,27 +217,31 @@ function fillProfileForm() {
 async function saveProfileFromForm(e) {
   e.preventDefault();
   if (!state.token) return;
-  const btn = e.submitter;
+  const btn = getSubmitButton(e);
   setLoading(btn, true);
-  $("#profile-status").textContent = "";
+  const statusEl = $("#profile-status");
+  if (statusEl) statusEl.textContent = "";
+
   try {
     const profile = {
-      name: $("#profile-name").value.trim(),
-      phone: $("#profile-phone").value.trim(),
-      city: $("#profile-city").value.trim(),
-      address: $("#profile-address").value.trim(),
-      pay_method: $("#profile-pay").value.trim(),
-      bio: $("#profile-bio").value.trim(),
+      name: ($("#profile-name") || {}).value?.trim?.() || ($("#profile-name")?.value || "").trim(),
+      phone: ($("#profile-phone") || {}).value?.trim?.() || ($("#profile-phone")?.value || "").trim(),
+      city: ($("#profile-city") || {}).value?.trim?.() || ($("#profile-city")?.value || "").trim(),
+      address: ($("#profile-address") || {}).value?.trim?.() || ($("#profile-address")?.value || "").trim(),
+      pay_method: ($("#profile-pay") || {}).value?.trim?.() || ($("#profile-pay")?.value || "").trim(),
+      bio: ($("#profile-bio") || {}).value?.trim?.() || ($("#profile-bio")?.value || "").trim(),
     };
-    const role = $("#profile-role").value;
+    const roleEl = $("#profile-role");
+    const role = roleEl ? roleEl.value : "";
     const res = await api("save_profile", { token: state.token, role, profile });
     state.profile = res.profile;
     fillProfileForm();
     updateDashboardHeader();
-    $("#profile-status").textContent = "Saved.";
+    if (statusEl) statusEl.textContent = "Saved.";
     showToast("Profile saved ✔️");
   } catch (err) {
-    $("#profile-status").textContent = "Could not save.";
+    console.error(err);
+    if (statusEl) statusEl.textContent = "Could not save.";
   } finally {
     setLoading(btn, false);
   }
@@ -200,37 +252,33 @@ async function loadDashboard() {
   if (!state.token) return;
   showView("dashboard");
   updateDashboardHeader();
-
   try {
     const [ownerRes, currentRes] = await Promise.all([
       api("owner_jobs", { token: state.token }),
       api("current_walks", { token: state.token }),
     ]);
-
     state.ownerJobs = ownerRes.jobs || [];
     state.currentJobs = currentRes.jobs || [];
-
     renderLatestOwner();
     renderDashboardCurrent();
-  } catch (_) {
-    // handled via toast
+  } catch (e) {
+    console.error(e);
   }
 }
 
 function updateDashboardHeader() {
   const sub = $("#dashboard-subtitle");
   if (!sub) return;
-  const name = state.profile?.name || "";
-  const email = state.profile?.email || "";
-  const who = name || email || "";
+  const p = state.profile || {};
+  const who = p.name || p.email || "";
   sub.textContent = who ? `Welcome back, ${who}.` : "Welcome back.";
 }
 
 function renderLatestOwner() {
   const container = $("#latest-owner-content");
   if (!container) return;
-  const jobs = state.ownerJobs;
-  if (!jobs || !jobs.length) {
+  const jobs = state.ownerJobs || [];
+  if (!jobs.length) {
     container.classList.add("empty-state");
     container.innerHTML = "<span>– No walks yet. Post your first walk.</span>";
     return;
@@ -256,25 +304,23 @@ function renderLatestOwner() {
       </div>
       <div class="job-actions">
         <button class="btn btn-small btn-outline" data-owner-job-id="${latest.job_id}">View bids</button>
-        <button class="btn btn-small btn-ghost" id="latest-owner-all">All my walks</button>
       </div>
     </div>
   `;
 
-  container.querySelector("[data-owner-job-id]").addEventListener("click", (e) => {
-    openOwnerJob(e.target.dataset.ownerJobId);
-  });
-  container.querySelector("#latest-owner-all").addEventListener("click", () => {
-    // Just ensure owner jobs loaded; could add a dedicated view later.
-    showToast("Scroll dashboard to see your latest walks.");
-  });
+  const btn = container.querySelector("[data-owner-job-id]");
+  if (btn) {
+    btn.addEventListener("click", function () {
+      openOwnerJob(btn.dataset.ownerJobId);
+    });
+  }
 }
 
 function renderDashboardCurrent() {
   const container = $("#dashboard-current-content");
   if (!container) return;
-  const jobs = state.currentJobs;
-  if (!jobs || !jobs.length) {
+  const jobs = state.currentJobs || [];
+  if (!jobs.length) {
     container.classList.add("empty-state");
     container.innerHTML = "<span>– Nothing active right now.</span>";
     return;
@@ -295,60 +341,72 @@ function renderDashboardCurrent() {
         </div>
         <span class="badge badge-status-assigned">Assigned</span>
       </div>
+      <div class="job-meta">
+        ${job.city ? `<span>${job.city}</span>` : ""}
+        ${
+          mapsLink
+            ? `<a href="${mapsLink}" target="_blank" rel="noopener">Open in Maps</a>`
+            : ""
+        }
+      </div>
       <div class="job-actions">
-        ${mapsLink ? `<a class="btn btn-small btn-outline" href="${mapsLink}" target="_blank" rel="noopener">Open in Maps</a>` : ""}
         <button class="btn btn-small btn-outline" data-current-open="${job.job_id}">Open details</button>
       </div>
     </div>
   `;
 
-  container.querySelector("[data-current-open]").addEventListener("click", async () => {
-    await loadCurrentView();
-  });
+  const btn = container.querySelector("[data-current-open]");
+  if (btn) {
+    btn.addEventListener("click", function () {
+      loadCurrentView();
+    });
+  }
 }
 
 // ====== POST WALK ======
 async function submitPostWalk(e) {
   e.preventDefault();
   if (!state.token) return;
-  const btn = e.submitter;
+  const btn = getSubmitButton(e);
   setLoading(btn, true);
-  $("#post-status").textContent = "";
+  const statusEl = $("#post-status");
+  if (statusEl) statusEl.textContent = "";
   try {
     const job = {
-      dog_name: $("#post-dog-name").value.trim(),
-      dog_size: $("#post-dog-size").value.trim(),
-      temperament: $("#post-temperament").value.trim(),
-      city: $("#post-city").value.trim(),
-      address: $("#post-address").value.trim(),
-      date: $("#post-date").value,
-      time: $("#post-time").value,
-      duration: $("#post-duration").value,
-      max_price: $("#post-max-price").value,
-      mode: $("#post-mode").value,
-      notes: $("#post-notes").value.trim(),
-      extra: $("#post-extra").value.trim(),
-      pay_method: $("#post-pay-method").value.trim(),
+      dog_name: ($("#post-dog-name")?.value || "").trim(),
+      dog_size: ($("#post-dog-size")?.value || "").trim(),
+      temperament: ($("#post-temperament")?.value || "").trim(),
+      city: ($("#post-city")?.value || "").trim(),
+      address: ($("#post-address")?.value || "").trim(),
+      date: $("#post-date")?.value || "",
+      time: $("#post-time")?.value || "",
+      duration: $("#post-duration")?.value || "",
+      max_price: $("#post-max-price")?.value || "",
+      mode: $("#post-mode")?.value || "",
+      notes: ($("#post-notes")?.value || "").trim(),
+      extra: ($("#post-extra")?.value || "").trim(),
+      pay_method: ($("#post-pay-method")?.value || "").trim(),
     };
-    const res = await api("create_job", { token: state.token, job });
-    $("#post-status").textContent = "Walk posted ✔️";
+    await api("create_job", { token: state.token, job });
+    if (statusEl) statusEl.textContent = "Walk posted ✔️";
     showToast("Walk posted ✔️");
-    // reload owner jobs & dashboard
     const ownerRes = await api("owner_jobs", { token: state.token });
     state.ownerJobs = ownerRes.jobs || [];
     await loadDashboard();
   } catch (err) {
-    $("#post-status").textContent = "Could not post walk.";
+    console.error(err);
+    if (statusEl) statusEl.textContent = "Could not post walk.";
   } finally {
     setLoading(btn, false);
   }
 }
 
-// ====== OPEN JOBS (LIST + BID) ======
+// ====== OPEN JOBS + BIDDING ======
 async function loadOpenJobsView() {
   if (!state.token) return;
   showView("open-jobs");
   const list = $("#open-jobs-list");
+  if (!list) return;
   list.innerHTML = "<div class='empty-state'>Loading walks…</div>";
   try {
     const res = await api("list_jobs", { token: state.token, filter: {} });
@@ -370,13 +428,11 @@ async function loadOpenJobsView() {
               <span>${job.max_price ? job.max_price + " CHF max" : "Owner decides with bids"}</span>
             </div>
           </div>
-          <div class="badge-group">
-            ${
-              job.near === "1"
-                ? `<span class="badge badge-near">Near you</span>`
-                : `<span class="badge badge-status-open">Open</span>`
-            }
-          </div>
+          ${
+            job.near === "1"
+              ? `<span class="badge badge-near">Near you</span>`
+              : `<span class="badge badge-status-open">Open</span>`
+          }
         </div>
         ${
           job.temperament || job.notes
@@ -404,9 +460,14 @@ async function loadOpenJobsView() {
       list.appendChild(card);
 
       const form = card.querySelector(".bid-form");
-      form.addEventListener("submit", (e) => submitBid(e, job.job_id));
+      if (form) {
+        form.addEventListener("submit", function (ev) {
+          submitBid(ev, job.job_id);
+        });
+      }
     });
-  } catch (_) {
+  } catch (err) {
+    console.error(err);
     list.innerHTML =
       "<div class='empty-state'>Could not load open walks. Try again.</div>";
   }
@@ -416,10 +477,12 @@ async function submitBid(e, jobId) {
   e.preventDefault();
   if (!state.token) return;
   const form = e.target;
-  const [amountInput, msgInput] = form.querySelectorAll("input");
-  const btn = form.querySelector("button[type=submit]");
-  const amount = parseFloat(amountInput.value);
-  const message = (msgInput.value || "").trim();
+  const inputs = form.querySelectorAll("input");
+  const amountInput = inputs[0];
+  const msgInput = inputs[1];
+  const btn = form.querySelector('button[type="submit"]');
+  const amount = parseFloat((amountInput?.value || "").trim());
+  const message = (msgInput?.value || "").trim();
   if (!amount || amount <= 0) {
     showToast("Enter a valid amount.", { error: true });
     return;
@@ -432,28 +495,29 @@ async function submitBid(e, jobId) {
       bid: { amount, message },
     });
     showToast("Bid placed ✔️");
-    amountInput.value = "";
-    msgInput.value = "";
-  } catch (_) {
-    // toast already shown
+    if (amountInput) amountInput.value = "";
+    if (msgInput) msgInput.value = "";
+  } catch (err) {
+    console.error(err);
   } finally {
     setLoading(btn, false);
   }
 }
 
-// ====== CURRENT WALKS + CHAT + MARK DONE ======
+// ====== CURRENT WALKS + CHAT ======
 async function loadCurrentView() {
   if (!state.token) return;
   showView("current");
   const list = $("#current-list");
+  if (!list) return;
   list.innerHTML = "<div class='empty-state'>Loading…</div>";
-
   try {
     const res = await api("current_walks", { token: state.token });
     const jobs = res.jobs || [];
     state.currentJobs = jobs;
     if (!jobs.length) {
-      list.innerHTML = "<div class='empty-state'>Nothing active right now.</div>";
+      list.innerHTML =
+        "<div class='empty-state'>Nothing active right now.</div>";
       return;
     }
     list.innerHTML = "";
@@ -495,9 +559,7 @@ async function loadCurrentView() {
         </div>
         <div class="chat" data-chat-container="${job.job_id}" style="display:none;">
           <div class="small-label">Chat</div>
-          <div class="chat-messages" id="chat-messages-${job.job_id}">
-            <!-- messages -->
-          </div>
+          <div class="chat-messages" id="chat-messages-${job.job_id}"></div>
           <form class="chat-form" data-chat-form="${job.job_id}">
             <input type="text" maxlength="1500" placeholder="Type a message…" />
             <button class="btn btn-small btn-primary" type="submit">Send</button>
@@ -508,14 +570,27 @@ async function loadCurrentView() {
 
       const doneBtn = card.querySelector("[data-done]");
       if (doneBtn) {
-        doneBtn.addEventListener("click", () => markWalkDone(job.job_id, doneBtn));
+        doneBtn.addEventListener("click", function () {
+          markWalkDone(job.job_id, doneBtn);
+        });
       }
+
       const chatBtn = card.querySelector("[data-chat]");
-      chatBtn.addEventListener("click", () => toggleChat(job.job_id));
+      if (chatBtn) {
+        chatBtn.addEventListener("click", function () {
+          toggleChat(job.job_id);
+        });
+      }
+
       const chatForm = card.querySelector("[data-chat-form]");
-      chatForm.addEventListener("submit", (e) => submitChat(e, job.job_id));
+      if (chatForm) {
+        chatForm.addEventListener("submit", function (ev) {
+          submitChat(ev, job.job_id);
+        });
+      }
     });
-  } catch (_) {
+  } catch (err) {
+    console.error(err);
     list.innerHTML =
       "<div class='empty-state'>Could not load current walks.</div>";
   }
@@ -528,8 +603,8 @@ async function markWalkDone(jobId, btn) {
     await api("mark_done", { token: state.token, job_id: jobId });
     showToast("Walk marked as done ✔️");
     await loadCurrentView();
-  } catch (_) {
-    // toast handled
+  } catch (err) {
+    console.error(err);
   } finally {
     setLoading(btn, false);
   }
@@ -539,12 +614,8 @@ function toggleChat(jobId) {
   const container = document.querySelector(`[data-chat-container="${jobId}"]`);
   if (!container) return;
   const isVisible = container.style.display !== "none";
-  if (isVisible) {
-    container.style.display = "none";
-  } else {
-    container.style.display = "block";
-    loadMessages(jobId);
-  }
+  container.style.display = isVisible ? "none" : "block";
+  if (!isVisible) loadMessages(jobId);
 }
 
 async function loadMessages(jobId) {
@@ -568,7 +639,8 @@ async function loadMessages(jobId) {
       box.appendChild(div);
     });
     box.scrollTop = box.scrollHeight;
-  } catch (_) {
+  } catch (err) {
+    console.error(err);
     box.innerHTML =
       "<div class='small-label'>Could not load messages.</div>";
   }
@@ -579,16 +651,16 @@ async function submitChat(e, jobId) {
   if (!state.token) return;
   const form = e.target;
   const input = form.querySelector("input");
-  const btn = form.querySelector("button[type=submit]");
-  const text = input.value.trim();
+  const btn = form.querySelector('button[type="submit"]');
+  const text = (input?.value || "").trim();
   if (!text) return;
   setLoading(btn, true);
   try {
     await api("send_message", { token: state.token, job_id: jobId, body: text });
-    input.value = "";
+    if (input) input.value = "";
     await loadMessages(jobId);
-  } catch (_) {
-    // toast handled
+  } catch (err) {
+    console.error(err);
   } finally {
     setLoading(btn, false);
   }
@@ -597,45 +669,52 @@ async function submitChat(e, jobId) {
 // ====== OWNER JOB VIEW (BIDS) ======
 async function openOwnerJob(jobId) {
   if (!state.token) return;
-  const job =
-    state.ownerJobs.find((j) => String(j.job_id) === String(jobId)) ||
-    state.currentJobs.find((j) => String(j.job_id) === String(jobId));
+  const jobsAll = (state.ownerJobs || []).concat(state.currentJobs || []);
+  const job = jobsAll.find((j) => String(j.job_id) === String(jobId));
   if (!job) {
     showToast("Walk not found.", { error: true });
     return;
   }
-  $("#owner-job-title").textContent = jobHuman(job);
-  $("#owner-job-sub").textContent =
-    (job.notes || job.temperament || "").slice(0, 140);
+  const titleEl = $("#owner-job-title");
+  if (titleEl) titleEl.textContent = jobHuman(job);
+  const subEl = $("#owner-job-sub");
+  if (subEl) subEl.textContent = (job.notes || job.temperament || "").slice(0, 140);
 
   const meta = $("#owner-job-meta");
-  meta.innerHTML = `
-    <div class="job-meta" style="margin-bottom:0.4rem;">
-      <span>${job.city || ""}</span>
-      <span>${job.duration || "?"} min</span>
-      <span>${job.max_price ? job.max_price + " CHF max" : "No max set"}</span>
-    </div>
-    ${
-      job.maps_link
-        ? `<p class="small-label"><a href="${job.maps_link}" target="_blank" rel="noopener">Open exact location in Maps</a></p>`
-        : ""
-    }
-    <p class="small-label">Status: <strong>${job.status}</strong></p>
-  `;
+  if (meta) {
+    meta.innerHTML = `
+      <div class="job-meta" style="margin-bottom:0.4rem;">
+        <span>${job.city || ""}</span>
+        <span>${job.duration || "?"} min</span>
+        <span>${job.max_price ? job.max_price + " CHF max" : "No max set"}</span>
+      </div>
+      ${
+        job.maps_link
+          ? `<p class="small-label"><a href="${job.maps_link}" target="_blank" rel="noopener">Open exact location in Maps</a></p>`
+          : ""
+      }
+      <p class="small-label">Status: <strong>${job.status}</strong></p>
+    `;
+  }
 
   showView("owner-job");
   try {
     const res = await api("list_bids", { token: state.token, job_id: jobId });
     const bids = res.bids || [];
     renderOwnerBids(job, bids);
-  } catch (_) {
-    $("#owner-job-bids").innerHTML =
-      "<div class='empty-state'>Could not load bids.</div>";
+  } catch (err) {
+    console.error(err);
+    const container = $("#owner-job-bids");
+    if (container) {
+      container.innerHTML =
+        "<div class='empty-state'>Could not load bids.</div>";
+    }
   }
 }
 
 function renderOwnerBids(job, bids) {
   const container = $("#owner-job-bids");
+  if (!container) return;
   if (!bids.length) {
     container.innerHTML =
       "<div class='empty-state'>No bids yet. You’ll receive an email when someone bids.</div>";
@@ -643,19 +722,15 @@ function renderOwnerBids(job, bids) {
   }
   container.innerHTML = "";
   bids.forEach((b) => {
-    const row = document.createElement("div");
     const status = String(b.status || "active").toLowerCase();
+    const row = document.createElement("div");
     row.className = "bid-row";
     row.innerHTML = `
       <div class="bid-main">
         <div><strong>${b.walker_name || "Walker"}</strong></div>
         <div class="bid-meta">
           <span>Bid: ${b.amount ? b.amount + " CHF" : "–"}</span>
-          ${
-            b.counter_amount
-              ? `<span>Counter: ${b.counter_amount} CHF</span>`
-              : ""
-          }
+          ${b.counter_amount ? `<span>Counter: ${b.counter_amount} CHF</span>` : ""}
         </div>
         ${
           b.message
@@ -679,15 +754,15 @@ function renderOwnerBids(job, bids) {
 
     const acceptBtn = row.querySelector("[data-accept]");
     if (acceptBtn) {
-      acceptBtn.addEventListener("click", () =>
-        acceptBid(job.job_id, acceptBtn.dataset.accept, acceptBtn)
-      );
+      acceptBtn.addEventListener("click", function () {
+        acceptBid(job.job_id, acceptBtn.dataset.accept, acceptBtn);
+      });
     }
     const counterBtn = row.querySelector("[data-counter]");
     if (counterBtn) {
-      counterBtn.addEventListener("click", () =>
-        promptCounter(job.job_id, counterBtn.dataset.counter)
-      );
+      counterBtn.addEventListener("click", function () {
+        promptCounter(job.job_id, counterBtn.dataset.counter);
+      });
     }
   });
 }
@@ -699,17 +774,16 @@ async function acceptBid(jobId, bidId, btn) {
     await api("accept_bid", { token: state.token, job_id: jobId, bid_id: bidId });
     showToast("Bid accepted ✔️");
     await loadCurrentView();
-    // refresh owner job bids
     await openOwnerJob(jobId);
-  } catch (_) {
-    // handled by toast
+  } catch (err) {
+    console.error(err);
   } finally {
     setLoading(btn, false);
   }
 }
 
 async function promptCounter(jobId, bidId) {
-  const raw = prompt("Counter amount (CHF):");
+  const raw = window.prompt("Counter amount (CHF):");
   if (raw == null) return;
   const amount = parseFloat(raw);
   if (!amount || amount <= 0) {
@@ -725,23 +799,23 @@ async function promptCounter(jobId, bidId) {
     });
     showToast("Counter sent ✔️");
     await openOwnerJob(jobId);
-  } catch (_) {
-    // toast handled
+  } catch (err) {
+    console.error(err);
   }
 }
 
-// ====== MY BIDS (WALKER SIDE) ======
+// ====== MY BIDS (WALKER) ======
 async function loadMyBidsView() {
   if (!state.token) return;
   showView("my-bids");
   const list = $("#my-bids-list");
+  if (!list) return;
   list.innerHTML = "<div class='empty-state'>Loading…</div>";
   try {
     const res = await api("my_bids", { token: state.token });
     const bids = res.bids || [];
     if (!bids.length) {
-      list.innerHTML =
-        "<div class='empty-state'>You have no bids yet.</div>";
+      list.innerHTML = "<div class='empty-state'>You have no bids yet.</div>";
       return;
     }
     list.innerHTML = "";
@@ -776,20 +850,20 @@ async function loadMyBidsView() {
 
       const acceptBtn = card.querySelector("[data-accept-counter]");
       if (acceptBtn) {
-        acceptBtn.addEventListener("click", () =>
-          acceptCounter(b.job_id, b.bid_id, acceptBtn)
-        );
+        acceptBtn.addEventListener("click", function () {
+          acceptCounter(b.job_id, b.bid_id, acceptBtn);
+        });
       }
       const declineBtn = card.querySelector("[data-decline-counter]");
       if (declineBtn) {
-        declineBtn.addEventListener("click", () =>
-          declineCounter(b.job_id, b.bid_id, declineBtn)
-        );
+        declineBtn.addEventListener("click", function () {
+          declineCounter(b.job_id, b.bid_id, declineBtn);
+        });
       }
     });
-  } catch (_) {
-    list.innerHTML =
-      "<div class='empty-state'>Could not load your bids.</div>";
+  } catch (err) {
+    console.error(err);
+    list.innerHTML = "<div class='empty-state'>Could not load your bids.</div>";
   }
 }
 
@@ -805,8 +879,8 @@ async function acceptCounter(jobId, bidId, btn) {
     showToast("Counter accepted ✔️");
     await loadMyBidsView();
     await loadCurrentView();
-  } catch (_) {
-    // toast handled
+  } catch (err) {
+    console.error(err);
   } finally {
     setLoading(btn, false);
   }
@@ -823,8 +897,8 @@ async function declineCounter(jobId, bidId, btn) {
     });
     showToast("Counter declined.");
     await loadMyBidsView();
-  } catch (_) {
-    // toast handled
+  } catch (err) {
+    console.error(err);
   } finally {
     setLoading(btn, false);
   }
@@ -833,17 +907,20 @@ async function declineCounter(jobId, bidId, btn) {
 // ====== AUTH FLOW ======
 async function handleLoginEmail(e) {
   e.preventDefault();
-  const email = $("#login-email").value.trim();
+  const emailInput = $("#login-email");
+  const email = (emailInput?.value || "").trim();
   if (!email) return;
-  const btn = e.submitter;
+  const btn = getSubmitButton(e);
   setLoading(btn, true);
-  $("#login-email-status").textContent = "";
+  const statusEl = $("#login-email-status");
+  if (statusEl) statusEl.textContent = "";
   try {
     await api("start_login", { email });
-    $("#login-email-status").textContent = "Code sent. Check your inbox.";
+    if (statusEl) statusEl.textContent = "Code sent. Check your inbox.";
     goToLoginCodeStep();
-  } catch (_) {
-    $("#login-email-status").textContent = "Could not send code.";
+  } catch (err) {
+    console.error(err);
+    if (statusEl) statusEl.textContent = "Could not send code.";
   } finally {
     setLoading(btn, false);
   }
@@ -851,12 +928,13 @@ async function handleLoginEmail(e) {
 
 async function handleLoginCode(e) {
   e.preventDefault();
-  const email = $("#login-email").value.trim();
-  const code = $("#login-code").value.trim();
+  const email = ($("#login-email")?.value || "").trim();
+  const code = ($("#login-code")?.value || "").trim();
   if (!email || !code) return;
-  const btn = e.submitter;
+  const btn = getSubmitButton(e);
   setLoading(btn, true);
-  $("#login-code-status").textContent = "";
+  const statusEl = $("#login-code-status");
+  if (statusEl) statusEl.textContent = "";
   try {
     const res = await api("verify_code", { email, code });
     state.token = res.token;
@@ -866,8 +944,9 @@ async function handleLoginCode(e) {
     updateAuthNav();
     await loadDashboard();
     showToast("Signed in ✔️");
-  } catch (_) {
-    $("#login-code-status").textContent = "Invalid or expired code.";
+  } catch (err) {
+    console.error(err);
+    if (statusEl) statusEl.textContent = "Invalid or expired code.";
   } finally {
     setLoading(btn, false);
   }
@@ -884,17 +963,19 @@ function logout() {
   showToast("Logged out.");
 }
 
-// ====== INIT & EVENT BINDING ======
+// ====== INIT & EVENTS ======
 function bindEvents() {
   // Landing
-  $("#btn-landing-signin").addEventListener("click", openLoginModal);
-  $("#btn-landing-learn").addEventListener("click", () => showView("landing"));
+  on("btn-landing-signin", "click", openLoginModal);
+  on("btn-landing-learn", "click", function () {
+    showView("landing");
+  });
 
   // Nav buttons
   $$(".nav-btn").forEach((btn) => {
     const target = btn.dataset.nav;
     if (!target) return;
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async function () {
       if (target === "landing") {
         showView("landing");
         return;
@@ -910,55 +991,86 @@ function bindEvents() {
       else if (target === "profile") {
         showView("profile");
         fillProfileForm();
+      } else if (target === "post") {
+        showView("post");
       } else {
         showView(target);
       }
     });
   });
 
-  $("#btn-open-login").addEventListener("click", openLoginModal);
-  $("#btn-logout").addEventListener("click", logout);
+  on("btn-open-login", "click", openLoginModal);
+  on("btn-logout", "click", logout);
 
   // Login modal
-  $("#login-close").addEventListener("click", closeLoginModal);
-  $("#login-back").addEventListener("click", () => {
-    $("#login-step-code").classList.add("hidden");
-    $("#login-step-email").classList.remove("hidden");
+  on("login-close", "click", closeLoginModal);
+  on("login-back", "click", function () {
+    const stepEmail = $("#login-step-email");
+    const stepCode = $("#login-step-code");
+    if (stepEmail && stepCode) {
+      stepCode.classList.add("hidden");
+      stepEmail.classList.remove("hidden");
+    }
   });
-  $("#form-login-email").addEventListener("submit", handleLoginEmail);
-  $("#form-login-code").addEventListener("submit", handleLoginCode);
 
-  // Profile form
-  $("#form-profile").addEventListener("submit", saveProfileFromForm);
-  $("#btn-go-profile").addEventListener("click", () => {
+  const formLoginEmail = $("#form-login-email");
+  if (formLoginEmail) {
+    formLoginEmail.addEventListener("submit", handleLoginEmail);
+  }
+
+  const formLoginCode = $("#form-login-code");
+  if (formLoginCode) {
+    formLoginCode.addEventListener("submit", handleLoginCode);
+  }
+
+  // Profile
+  const formProfile = $("#form-profile");
+  if (formProfile) {
+    formProfile.addEventListener("submit", saveProfileFromForm);
+  }
+  on("btn-go-profile", "click", function () {
     if (!state.token) return;
     showView("profile");
     fillProfileForm();
   });
 
   // Quick actions
-  $("#btn-go-post").addEventListener("click", () => showView("post"));
-  $("#btn-go-open-jobs").addEventListener("click", loadOpenJobsView);
-  $("#btn-go-current").addEventListener("click", loadCurrentView);
-  $("#btn-go-my-bids").addEventListener("click", loadMyBidsView);
+  on("btn-go-post", "click", function () {
+    showView("post");
+  });
+  on("btn-go-open-jobs", "click", function () {
+    loadOpenJobsView();
+  });
+  on("btn-go-current", "click", function () {
+    loadCurrentView();
+  });
+  on("btn-go-my-bids", "click", function () {
+    loadMyBidsView();
+  });
 
   // Post form
-  $("#form-post").addEventListener("submit", submitPostWalk);
+  const formPost = $("#form-post");
+  if (formPost) {
+    formPost.addEventListener("submit", submitPostWalk);
+  }
 
   // Owner-job back
-  $("#btn-owner-job-back").addEventListener("click", () => {
+  on("btn-owner-job-back", "click", function () {
     showView("dashboard");
   });
 
-  // Debug toggle & keyboard shortcut
-  $("#debug-toggle").addEventListener("click", () => {
+  // Debug toggle
+  on("debug-toggle", "click", function () {
     const panel = $("#debug-panel");
+    if (!panel) return;
     panel.style.display = panel.style.display === "none" ? "block" : "none";
   });
-  document.addEventListener("keydown", (e) => {
+
+  document.addEventListener("keydown", function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
       e.preventDefault();
       const panel = $("#debug-panel");
+      if (!panel) return;
       panel.style.display = panel.style.display === "none" ? "block" : "none";
     }
   });
@@ -968,6 +1080,7 @@ async function boot() {
   bindEvents();
   updateAuthNav();
   updateDebugPanel();
+  showView("landing");
 
   const savedToken = localStorage.getItem("igoToken");
   if (savedToken) {
@@ -976,12 +1089,10 @@ async function boot() {
     try {
       await refreshProfile();
       await loadDashboard();
-    } catch (_) {
-      // token invalid
+    } catch (err) {
+      console.error(err);
       logout();
     }
-  } else {
-    showView("landing");
   }
 }
 
