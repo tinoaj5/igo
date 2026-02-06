@@ -1,23 +1,19 @@
-/* ui.js — UPDATED (privacy + user-friendly dates + better labels + directions)
-   Key changes:
-   - No longer shows owner/walker emails in Current Walks
-   - Formats date/time nicely (fixes ISO + weird 1899 time objects)
-   - Uses a readable “walk label” everywhere instead of raw job_id when possible
-   - Adds a “Directions” button (Google Maps) for CURRENT walks (assigned)
-   - Keeps buttons distinct (Open current ≠ Chat; no duplicate destinations)
-*/
+/* ui.js — UPDATED (Option A) — user-friendly UI + no email leaks + maps links + time formatting
+ * - Hides emails everywhere (UI only uses names)
+ * - Human-friendly job labels (job_code + dog + city + date/time)
+ * - Fixes accept/counter buttons & prevents duplicate routes
+ * - Better Current Walk UI (card layout, map + chat)
+ * - Prefills owner post walk form
+ * - Enforces: accept/counter cutoff is handled by backend; UI shows friendly messaging
+ */
 
 (function () {
-  // prevent double boot if ui.js gets loaded twice by mistake
   if (window.__IGO_UI_BOOTED__) return;
   window.__IGO_UI_BOOTED__ = true;
 
   let CURRENT_CHAT_JOB_ID = null;
 
-  // cache job summaries so My bids / Chat can show human-friendly labels
-  const JOB_CACHE = new Map(); // job_id -> job object
-
-  /* ============ small helpers ============ */
+  /* ============ helpers ============ */
   const esc = (s) =>
     String(s ?? "").replace(/[&<>"']/g, (m) => ({
       "&": "&amp;",
@@ -32,6 +28,11 @@
     return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : "");
   };
 
+  const toInt = (x, d = 0) => {
+    const n = Number(x);
+    return Number.isFinite(n) ? Math.round(n) : d;
+  };
+
   function showToast(msg) {
     const t = document.getElementById("toast");
     if (!t) return;
@@ -41,7 +42,7 @@
   }
   window.showToast = showToast;
 
-  /* debug toggle */
+  // Debug panel
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
       const dbg = document.getElementById("debug");
@@ -49,6 +50,7 @@
       dbg.style.display = dbg.style.display === "none" ? "block" : "none";
     }
   });
+
   window.setDebug = function (msg) {
     const dbgpre = document.getElementById("dbgpre");
     if (!dbgpre) return;
@@ -59,7 +61,7 @@
     }
   };
 
-  /* dialogs */
+  // Dialog helpers
   function supportsDialog() {
     try {
       return typeof HTMLDialogElement === "function" && !!document.createElement("dialog").showModal;
@@ -84,100 +86,7 @@
     } catch (_) {}
   }
 
-  /* ============ date/time formatting (fixes ISO + Sheets date objects) ============ */
-  function toDateSafe(v) {
-    if (!v) return null;
-    if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
-
-    // sometimes Apps Script returns {…} or numbers; string-ify then parse
-    const s = String(v);
-    // ISO?
-    const d = new Date(s);
-    if (!isNaN(d.getTime())) return d;
-
-    return null;
-  }
-
-  function fmtDate(v) {
-    // prefer “Thu 5 Feb” style
-    const d = toDateSafe(v);
-    if (!d) {
-      // maybe already "YYYY-MM-DD"
-      const s = String(v || "").trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      return s;
-    }
-    return d.toLocaleDateString(undefined, {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  }
-
-  function fmtTime(v) {
-    const d = toDateSafe(v);
-    if (d) {
-      // time-only Date objects often come back as 1899/1900 + time; keep only HH:MM
-      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-    }
-    const s = String(v || "").trim();
-    // already "HH:MM"
-    if (/^\d{1,2}:\d{2}/.test(s)) return s;
-    return s;
-  }
-
-  function fmtWhen(job) {
-    const ds = fmtDate(job?.date);
-    const ts = fmtTime(job?.time);
-    const when = `${ds} ${ts}`.trim();
-    return when || "";
-  }
-
-  function shortId(jobId) {
-    const s = String(jobId || "");
-    if (!s) return "";
-    // job_xxxxx -> show last 6
-    const tail = s.replace(/^job_/, "");
-    return tail.length > 8 ? tail.slice(0, 8) : tail;
-  }
-
-  function jobLabel(jobOrId) {
-    // If we have the job object, build a nice label.
-    const job = typeof jobOrId === "string" ? (JOB_CACHE.get(jobOrId) || null) : jobOrId;
-    if (job) {
-      const dog = job.dog_name || "Dog";
-      const city = job.city || "";
-      const when = fmtWhen(job);
-      // job_code is best if present
-      const code = job.job_code ? `#${job.job_code}` : `#${shortId(job.job_id)}`;
-      return `${dog} • ${city}${when ? " • " + when : ""} ${code ? " · " + code : ""}`.trim();
-    }
-    // fallback: compact id
-    return `Walk #${shortId(jobOrId) || String(jobOrId || "")}`;
-  }
-
-  function cacheJobs(list) {
-    (list || []).forEach((j) => {
-      if (j && j.job_id) JOB_CACHE.set(String(j.job_id), j);
-    });
-  }
-
-  /* ============ maps helpers ============ */
-  function buildMapsLink(address, city) {
-    const q = [address, city].filter(Boolean).join(", ");
-    if (!q) return null;
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
-  }
-
-  window.openDirections = function (jobId) {
-    const j = JOB_CACHE.get(String(jobId));
-    const url = buildMapsLink(j?.address, j?.city);
-    if (!url) return showToast("No address available yet.");
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-  /* expose open/close used by onclick */
+  // exposed open/close
   window.openSignin = () => openDlg("signinModal");
   window.closeSignin = () => closeDlg("signinModal");
 
@@ -223,7 +132,6 @@
     CURRENT_CHAT_JOB_ID = null;
   };
 
-  /* dashboard switching */
   function showSignedInUI() {
     const dash = document.getElementById("dash");
     const marketing = document.getElementById("marketing");
@@ -242,6 +150,45 @@
     const isOwner = prof.is_owner === "1" || role.includes("owner");
     const isWalker = prof.is_walker === "1" || role.includes("walker");
     return { isOwner, isWalker };
+  }
+
+  // human-friendly date/time
+  function fmtDateTime(dateStr, timeStr) {
+    const d = String(dateStr || "").trim();
+    const t = String(timeStr || "").trim();
+    if (!d && !t) return "";
+    // date input is usually YYYY-MM-DD
+    const dt = d ? new Date(`${d}T${t || "00:00"}:00`) : null;
+    if (dt && !Number.isNaN(dt.getTime())) {
+      return dt.toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    return `${d} ${t}`.trim();
+  }
+
+  function jobLabel(j) {
+    const code = j.job_code ? `#${j.job_code}` : "";
+    const dog = j.dog_name ? String(j.dog_name) : "Dog";
+    const city = j.city ? String(j.city) : "";
+    const when = fmtDateTime(j.date, j.time);
+    const parts = [];
+    if (code) parts.push(code);
+    parts.push(dog);
+    if (city) parts.push(city);
+    if (when) parts.push(when);
+    return parts.join(" · ");
+  }
+
+  // Build Google Maps link (safe query)
+  function mapsLinkQuery(q) {
+    const s = String(q || "").trim();
+    if (!s) return "";
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s)}`;
   }
 
   /* auth chip */
@@ -263,14 +210,15 @@
     showSignedInUI();
 
     const { isOwner, isWalker } = computeRoleFlags(prof);
-    const name = prof.name || prof.email || "Account";
+    const name = prof.name || "Account";
 
     const parts = [];
     parts.push(`<span class="user-chip-name">${esc(name)}</span>`);
+    // Only show buttons relevant to role
     if (isOwner) parts.push(`<span class="dot">·</span><button type="button" onclick="openOwnerModal()">Post walk</button>`);
     if (isWalker) parts.push(`<span class="dot">·</span><button type="button" onclick="openJobs()">Open walks</button>`);
     parts.push(`<span class="dot">·</span><button type="button" onclick="openCurrentWalks()">Current</button>`);
-    parts.push(`<span class="dot">·</span><button type="button" onclick="openMyBids()">My bids</button>`);
+    if (isWalker) parts.push(`<span class="dot">·</span><button type="button" onclick="openMyBids()">My bids</button>`);
     parts.push(`<span class="dot">·</span><button type="button" onclick="openProfile()">Profile</button>`);
     parts.push(`<span class="dot">·</span><button type="button" onclick="doSignOut()">Sign out</button>`);
     chip.innerHTML = parts.join(" ");
@@ -286,7 +234,7 @@
 
   /* ============ events ============ */
   function wireEvents() {
-    // SIGN IN — critical to prevent refresh
+    // SIGN IN
     document.getElementById("signinBtn")?.addEventListener("click", () => openDlg("signinModal"));
 
     document.getElementById("signinForm")?.addEventListener("submit", async (e) => {
@@ -391,6 +339,9 @@
       }
 
       const job = Object.fromEntries(new FormData(e.target).entries());
+
+      // Small dog size helper (UI only)
+      // We keep value in dog_size but show the info in the modal (modals.html change is separate)
       const res = await postForm({ action: "create_job", token, job });
       window.setDebug(res);
 
@@ -446,11 +397,19 @@
     const prof = getProfile() || {};
     const form = document.getElementById("ownerForm");
     if (!form) return;
+
+    // Prefill what we can
     if (prof.name) form.elements["name"].value = prof.name;
     if (prof.email) form.elements["email"].value = prof.email;
     if (prof.phone) form.elements["phone"].value = prof.phone;
     if (prof.city) form.elements["city"].value = prof.city;
     if (prof.address) form.elements["address"].value = prof.address;
+
+    // set sensible defaults
+    const dur = form.elements["duration"];
+    if (dur && !dur.value) dur.value = "60";
+    const dogSize = form.elements["dog_size"];
+    if (dogSize && !dogSize.value) dogSize.value = "MEDIUM";
   }
 
   function setDateMinToday() {
@@ -469,7 +428,7 @@
     const dashTitle = document.getElementById("dashTitle");
     const dashSub = document.getElementById("dashSub");
 
-    if (dashTitle) dashTitle.textContent = `Welcome, ${prof.name || prof.email || "there"}.`;
+    if (dashTitle) dashTitle.textContent = `Welcome, ${prof.name || "there"}.`;
     if (dashSub) {
       dashSub.textContent =
         isOwner && isWalker ? "Owner + Walker mode enabled. Pick what you want to do now." :
@@ -491,7 +450,6 @@
     if (yr) yr.textContent = new Date().getFullYear();
   }
 
-  /* Owner: latest walk preview */
   async function refreshOwnerLatestPreview() {
     const token = getToken();
     if (!token) return;
@@ -500,8 +458,6 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
-    cacheJobs(jobs);
-
     const body = document.getElementById("ownerLatestBody");
     const btn = document.getElementById("ownerLatestBidsBtn");
     if (!body || !btn) return;
@@ -515,9 +471,9 @@
 
     const j = jobs[0];
     body.innerHTML = `
-      <div style="font-weight:800;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+      <div style="font-weight:900;">${esc(jobLabel(j))}</div>
       <div class="muted" style="font-size:12px;margin-top:4px;">
-        ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min • status: ${esc(j.status || "")}
+        Status: <b>${esc(j.status || "")}</b>
       </div>
       ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
     `;
@@ -529,7 +485,6 @@
     };
   }
 
-  /* Walker panel (optional DOM ids; safe if missing) */
   async function refreshWalkerPanel() {
     const token = getToken();
     if (!token) return;
@@ -541,20 +496,13 @@
     // current walk first
     const cw = await postForm({ action: "current_walks", token });
     const current = (cw.jobs || [])[0];
-    cacheJobs(cw.jobs || []);
-
     if (current) {
       body.innerHTML = `
-        <div style="font-weight:800;">Current walk: ${esc(current.dog_name || "Dog")} • ${esc(current.city || "")}</div>
-        <div class="muted" style="font-size:12px;margin-top:4px;">
-          ${esc(fmtWhen(current))} • ${esc(current.duration || "")} min
-        </div>
-        ${current.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(current.notes)}</div>` : ``}
+        <div style="font-weight:900;">Current walk</div>
+        <div class="muted" style="font-size:12px;margin-top:4px;">${esc(jobLabel(current))}</div>
       `;
-
       actions.innerHTML = `
-        <button class="btn btn-outline btn-small" type="button" onclick="openCurrentWalks()">Open current</button>
-        <button class="btn btn-outline btn-small" type="button" onclick="openDirections('${esc(current.job_id)}')">Directions</button>
+        <button class="btn btn-outline btn-small" type="button" onclick="openCurrentWalks()">Open</button>
         <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(current.job_id)}')">Chat</button>
       `;
       return;
@@ -575,8 +523,8 @@
     const counterLine = b.counter_amount ? `• Counter: <b>${money(b.counter_amount)}</b>` : "";
 
     body.innerHTML = `
-      <div style="font-weight:800;">Latest bid</div>
-      <div class="muted" style="font-size:12px;margin-top:4px;">${esc(jobLabel(b.job_id))}</div>
+      <div style="font-weight:900;">Latest bid</div>
+      <div class="muted" style="font-size:12px;margin-top:4px;">Walk: <b>${esc(b.job_id || "")}</b></div>
       <div class="muted" style="font-size:12px;margin-top:4px;">
         Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b> ${counterLine}
       </div>
@@ -589,7 +537,7 @@
       `;
     } else {
       actions.innerHTML = `
-        <button class="btn btn-outline btn-small" type="button" onclick="openMyBids()">Open “My bids”</button>
+        <button class="btn btn-outline btn-small" type="button" onclick="openMyBids()">My bids</button>
         <button class="btn btn-outline btn-small" type="button" onclick="openJobs()">Open walks</button>
       `;
     }
@@ -609,23 +557,28 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
-    cacheJobs(jobs);
-
     if (!jobs.length) {
       if (empty) empty.style.display = "block";
       return;
     }
 
-    list.innerHTML = jobs.map((j) => `
+    list.innerHTML = jobs.map((j) => {
+      const approxMap = mapsLinkQuery(j.city || "");
+      const when = fmtDateTime(j.date, j.time);
+      const size = String(j.dog_size || "").trim();
+
+      return `
       <div class="card" style="margin-bottom:10px;">
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
               <div style="font-weight:900;font-size:16px;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min • max ${money(j.max_price)}
+                ${esc(when)} • ${esc(j.duration || "")} min • max ${money(j.max_price)}
               </div>
+              ${size ? `<div class="muted" style="font-size:12px;margin-top:4px;">Dog size: <b>${esc(size)}</b></div>` : ``}
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
+              ${approxMap ? `<div style="margin-top:10px;"><a class="btn btn-ghost btn-small" target="_blank" href="${approxMap}">🗺 Approx area</a></div>` : ``}
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               <button class="btn btn-primary btn-small" onclick="openBidSheet('${esc(j.job_id)}','${esc(j.max_price || "")}')">Bid</button>
@@ -633,7 +586,8 @@
           </div>
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
   window.openBidSheet = function (jobId, maxPrice) {
@@ -669,8 +623,6 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
-    cacheJobs(jobs);
-
     if (!jobs.length) {
       if (empty) empty.style.display = "block";
       return;
@@ -681,9 +633,9 @@
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min • status: <b>${esc(j.status || "")}</b>
+                Duration: ${esc(j.duration || "")} min • Status: <b>${esc(j.status || "")}</b>
               </div>
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
             </div>
@@ -730,13 +682,13 @@
     }
 
     wrap.innerHTML = bids.map((b) => {
-      const initials = (b.walker_name || b.walker_email || "W").trim().slice(0, 1).toUpperCase();
+      const initials = (b.walker_name || "W").trim().slice(0, 1).toUpperCase();
       const status = String(b.status || "").toLowerCase();
+
       const counterInfo = b.counter_amount
-        ? `<div class="muted" style="font-size:12px;margin-top:4px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
+        ? `<div class="muted" style="font-size:12px;margin-top:6px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
         : "";
 
-      // Privacy: do NOT show walker email here (only name + city)
       return `
         <div class="card" style="margin-top:10px;">
           <div class="card-inner">
@@ -748,7 +700,7 @@
               <div style="flex:1;">
                 <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
                   <div>
-                    <div style="font-weight:900;">${esc(b.walker_name || "WALKER")}</div>
+                    <div style="font-weight:900;">${esc(b.walker_name || "Walker")}</div>
                     <div class="muted" style="font-size:12px;">
                       ${esc(b.walker_city || "")}
                     </div>
@@ -778,9 +730,12 @@
                     <input id="counterVal_${esc(b.bid_id)}" type="number" min="1" step="1" placeholder="e.g. 30"
                       style="flex:1;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
                     <button class="btn btn-primary btn-small" type="button"
-                      onclick="confirmCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Yes, counter</button>
+                      onclick="confirmCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Send</button>
                     <button class="btn btn-ghost btn-small" type="button"
-                      onclick="toggleCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">No</button>
+                      onclick="toggleCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Cancel</button>
+                  </div>
+                  <div class="muted" style="font-size:11px;margin-top:6px;">
+                    You can accept/counter until 30 minutes before walk start.
                   </div>
                 </div>
 
@@ -825,7 +780,6 @@
     showToast("Accepted");
     await refreshOwnerJobs();
     await refreshOwnerLatestPreview();
-    // also refresh current list so owner sees it move to “Current”
     await refreshCurrentWalks().catch(() => {});
   };
 
@@ -858,7 +812,7 @@
           <div class="card-inner">
             <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
               <div style="flex:1;">
-                <div style="font-weight:900;">${esc(jobLabel(b.job_id))}</div>
+                <div style="font-weight:900;">Bid on walk</div>
                 <div class="muted" style="font-size:12px;margin-top:4px;">
                   Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b>
                 </div>
@@ -915,37 +869,40 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
-    cacheJobs(jobs);
-
     if (!jobs.length) {
       if (empty) empty.style.display = "block";
       await refreshWalkerPanel().catch(() => {});
       return;
     }
 
-    list.innerHTML = jobs.map((j) => `
+    list.innerHTML = jobs.map((j) => {
+      const when = fmtDateTime(j.date, j.time);
+      // after acceptance we expect address to be used for exact map (backend will provide)
+      // fallback: use address if present else city
+      const q = (j.address && j.city) ? `${j.address}, ${j.city}` : (j.address || j.city || "");
+      const map = q ? mapsLinkQuery(q) : "";
+
+      return `
       <div class="card" style="margin-bottom:12px;">
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min
+                ${esc(when)} • ${esc(j.duration || "")} min
               </div>
               ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
-              <div class="muted" style="font-size:11px;margin-top:6px;">
-                ${esc(j.job_code ? `Walk ${j.job_code}` : `Walk ${shortId(j.job_id)}`)}
-              </div>
+              ${map ? `<div style="margin-top:10px;"><a class="btn btn-outline btn-small" target="_blank" href="${map}">🗺 Open directions</a></div>` : ``}
             </div>
 
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-              <button class="btn btn-outline btn-small" type="button" onclick="openDirections('${esc(j.job_id)}')">Directions</button>
               <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(j.job_id)}')">Chat</button>
             </div>
           </div>
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
 
     await refreshWalkerPanel().catch(() => {});
   }
@@ -953,12 +910,8 @@
   /* ============ chat ============ */
   window.openChat = async function (jobId) {
     CURRENT_CHAT_JOB_ID = jobId;
-
     const head = document.getElementById("chatHeader");
-    if (head) {
-      head.textContent = `Chat • ${jobLabel(jobId)}`;
-    }
-
+    if (head) head.textContent = `Chat`;
     openDlg("chatModal");
     await loadChat();
   };
@@ -986,24 +939,31 @@
       return;
     }
 
-    box.innerHTML = msgs.map((m) => `
-      <div class="chat-msg">
-        <div class="chat-meta"><b>${esc(m.sender_name || "User")}</b> · <span>${esc(new Date(m.ts).toLocaleString())}</span></div>
-        <div class="chat-body">${esc(m.body)}</div>
-      </div>
-    `).join("");
+    box.innerHTML = msgs.map((m) => {
+      const ts = new Date(m.ts);
+      const tss = Number.isNaN(ts.getTime())
+        ? ""
+        : ts.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", month: "short", day: "2-digit" });
+
+      return `
+        <div class="chat-msg">
+          <div class="chat-meta"><b>${esc(m.sender_name || "User")}</b> · <span>${esc(tss)}</span></div>
+          <div class="chat-body">${esc(m.body)}</div>
+        </div>
+      `;
+    }).join("");
 
     box.scrollTop = box.scrollHeight;
   };
 
   /* ============ init ============ */
   function waitForModalsThenInit() {
-    // This ensures all modal DOM exists before attaching listeners
     const ok =
       document.getElementById("signinForm") &&
       document.getElementById("codeForm") &&
       document.getElementById("profileForm") &&
-      document.getElementById("ownerForm");
+      document.getElementById("ownerForm") &&
+      document.getElementById("chatForm");
 
     if (!ok) {
       setTimeout(waitForModalsThenInit, 30);
@@ -1020,11 +980,10 @@
 
   waitForModalsThenInit();
 
-  // expose refresh functions used by modal open buttons
+  // expose refresh
   window.refreshJobs = refreshJobs;
   window.refreshOwnerJobs = refreshOwnerJobs;
   window.refreshMyBids = refreshMyBids;
   window.refreshCurrentWalks = refreshCurrentWalks;
-
   window.renderDash = renderDash;
 })();
