@@ -52,11 +52,44 @@ function setLoading(btn, isLoading) {
   }
 }
 
+// ---- Nice date formatting for jobs ----
+function formatJobWhen(job) {
+  let dateText = "";
+  let timeText = "";
+
+  if (job.date) {
+    const d = new Date(job.date);
+    if (!isNaN(d.getTime())) {
+      // e.g. "05 Feb 2026"
+      dateText = d.toLocaleDateString(undefined, {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } else {
+      dateText = String(job.date);
+    }
+  }
+
+  if (job.time) {
+    const t = new Date(job.time);
+    if (!isNaN(t.getTime())) {
+      const hh = String(t.getHours()).padStart(2, "0");
+      const mm = String(t.getMinutes()).padStart(2, "0");
+      timeText = `${hh}:${mm}`;
+    } else {
+      timeText = String(job.time);
+    }
+  }
+
+  return [dateText, timeText].filter(Boolean).join(" · ");
+}
+
 function jobHuman(job) {
   const code = job.job_code ? `#${job.job_code}` : "";
   const dog = job.dog_name || "Dog";
   const city = job.city || "";
-  const when = (job.date || "") + (job.time ? " " + job.time : "");
+  const when = formatJobWhen(job);
   return [code, dog, city, when].filter(Boolean).join(" · ");
 }
 
@@ -260,6 +293,7 @@ async function loadDashboard() {
     state.currentJobs = currentRes.jobs || [];
     renderLatestOwner();
     renderDashboardCurrent();
+    setHowDashboardMode("owner");
   } catch (e) {
     console.error(e);
   }
@@ -287,12 +321,15 @@ function renderLatestOwner() {
   )[0];
 
   container.classList.remove("empty-state");
+  const when = formatJobWhen(latest);
+
   container.innerHTML = `
     <div>
       <div class="job-header">
         <div>
           <div class="job-title">${jobHuman(latest)}</div>
           <div class="job-meta">
+            ${when ? `<span>${when}</span>` : ""}
             <span>${latest.duration || "?"} min</span>
             <span>${latest.max_price ? latest.max_price + " CHF max" : "No max set"}</span>
           </div>
@@ -328,12 +365,15 @@ function renderDashboardCurrent() {
   const job = jobs[0];
   container.classList.remove("empty-state");
   const mapsLink = job.maps_link;
+  const when = formatJobWhen(job);
+
   container.innerHTML = `
     <div>
       <div class="job-header">
         <div>
           <div class="job-title">${jobHuman(job)}</div>
           <div class="job-meta">
+            ${when ? `<span>${when}</span>` : ""}
             <span>${job.duration || "?"} min</span>
             <span>${job.pay_method || ""}</span>
           </div>
@@ -359,6 +399,51 @@ function renderDashboardCurrent() {
     btn.addEventListener("click", function () {
       loadCurrentView();
     });
+  }
+}
+
+// ====== "How it works" explainer in dashboard ======
+function setHowDashboardMode(mode) {
+  const textEl = $("#how-text");
+  const ownerBtn = $("#btn-how-owner");
+  const walkerBtn = $("#btn-how-walker");
+  if (!textEl || !ownerBtn || !walkerBtn) return;
+
+  if (mode === "owner") {
+    ownerBtn.classList.add("btn-primary");
+    ownerBtn.classList.remove("btn-outline");
+    walkerBtn.classList.add("btn-outline");
+    walkerBtn.classList.remove("btn-primary");
+
+    textEl.innerHTML = `
+      <p><strong>As an owner, you:</strong></p>
+      <ul class="bullet-list">
+        <li>Set up your profile with city, contact and how you prefer to pay.</li>
+        <li>Post a walk with date, time, duration, max price and dog info.</li>
+        <li>Walkers in your city get an email and can place bids.</li>
+        <li>You see all bids, can accept one directly or send a counter offer.</li>
+        <li>When you accept, that walker gets your exact address and a chat opens.</li>
+        <li>After the walk, you mark it as <strong>done</strong>. That frees the walker for another job.</li>
+      </ul>
+    `;
+  } else {
+    walkerBtn.classList.add("btn-primary");
+    walkerBtn.classList.remove("btn-outline");
+    ownerBtn.classList.add("btn-outline");
+    ownerBtn.classList.remove("btn-primary");
+
+    textEl.innerHTML = `
+      <p><strong>As a walker, you:</strong></p>
+      <ul class="bullet-list">
+        <li>Create a profile with your city, contact and how you like to be paid.</li>
+        <li>Get emails when new walks are posted in your city.</li>
+        <li>See only approximate location first (city-level map), not the exact address.</li>
+        <li>Place a bid with your price and a short message.</li>
+        <li>If the owner counters, you can accept or decline the counter.</li>
+        <li>Once a bid is accepted, you see the exact address + chat and can organise details.</li>
+        <li>You can only have one active walk at a time, so you don’t overbook yourself.</li>
+      </ul>
+    `;
   }
 }
 
@@ -416,6 +501,7 @@ async function loadOpenJobsView() {
     }
     list.innerHTML = "";
     jobs.forEach((job) => {
+      const when = formatJobWhen(job);
       const card = document.createElement("div");
       card.className = "card";
       card.innerHTML = `
@@ -423,6 +509,7 @@ async function loadOpenJobsView() {
           <div>
             <div class="job-title">${jobHuman(job)}</div>
             <div class="job-meta">
+              ${when ? `<span>${when}</span>` : ""}
               <span>${job.duration || "?"} min</span>
               <span>${job.max_price ? job.max_price + " CHF max" : "Owner decides with bids"}</span>
             </div>
@@ -527,6 +614,8 @@ async function loadCurrentView() {
         String(job.owner_email || "").toLowerCase() ===
           String(state.profile.email).toLowerCase();
 
+      const when = formatJobWhen(job);
+
       const card = document.createElement("div");
       card.className = "card";
       card.innerHTML = `
@@ -534,6 +623,7 @@ async function loadCurrentView() {
           <div>
             <div class="job-title">${jobHuman(job)}</div>
             <div class="job-meta">
+              ${when ? `<span>${when}</span>` : ""}
               <span>${job.duration || "?"} min</span>
               <span>${job.pay_method || ""}</span>
             </div>
@@ -681,8 +771,10 @@ async function openOwnerJob(jobId) {
 
   const meta = $("#owner-job-meta");
   if (meta) {
+    const when = formatJobWhen(job);
     meta.innerHTML = `
       <div class="job-meta" style="margin-bottom:0.4rem;">
+        ${when ? `<span>${when}</span>` : ""}
         <span>${job.city || ""}</span>
         <span>${job.duration || "?"} min</span>
         <span>${job.max_price ? job.max_price + " CHF max" : "No max set"}</span>
@@ -1056,6 +1148,14 @@ function bindEvents() {
   // Owner job back
   on("btn-owner-job-back", "click", function () {
     showView("dashboard");
+  });
+
+  // How it works box
+  on("btn-how-owner", "click", function () {
+    setHowDashboardMode("owner");
+  });
+  on("btn-how-walker", "click", function () {
+    setHowDashboardMode("walker");
   });
 
   // Debug toggle
