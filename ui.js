@@ -1,12 +1,6 @@
-/* ui.js — UPDATED (Option A) — user-friendly UI + no email leaks + maps links + time formatting
- * - Hides emails everywhere (UI only uses names)
- * - Human-friendly job labels (job_code + dog + city + date/time)
- * - Fixes accept/counter buttons & prevents duplicate routes
- * - Better Current Walk UI (card layout, map + chat)
- * - Prefills owner post walk form
- * - Enforces: accept/counter cutoff is handled by backend; UI shows friendly messaging
- */
-
+/* ui.js — STABLE FIX (ISO date/time cleanup + robust autofill + friendly labels)
+   Drop-in replacement.
+*/
 (function () {
   if (window.__IGO_UI_BOOTED__) return;
   window.__IGO_UI_BOOTED__ = true;
@@ -28,10 +22,7 @@
     return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : "");
   };
 
-  const toInt = (x, d = 0) => {
-    const n = Number(x);
-    return Number.isFinite(n) ? Math.round(n) : d;
-  };
+  const pad2 = (n) => String(n).padStart(2, "0");
 
   function showToast(msg) {
     const t = document.getElementById("toast");
@@ -42,7 +33,7 @@
   }
   window.showToast = showToast;
 
-  // Debug panel
+  // Debug toggle
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
       const dbg = document.getElementById("debug");
@@ -50,7 +41,6 @@
       dbg.style.display = dbg.style.display === "none" ? "block" : "none";
     }
   });
-
   window.setDebug = function (msg) {
     const dbgpre = document.getElementById("dbgpre");
     if (!dbgpre) return;
@@ -61,7 +51,7 @@
     }
   };
 
-  // Dialog helpers
+  /* ============ dialog helpers ============ */
   function supportsDialog() {
     try {
       return typeof HTMLDialogElement === "function" && !!document.createElement("dialog").showModal;
@@ -86,63 +76,188 @@
     } catch (_) {}
   }
 
-  // exposed open/close
+  /* ============ date/time normalization (fixes ...Z + 1899-12-30 time) ============ */
+
+  function isYmd(s) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(s || "").trim());
+  }
+  function isHm(s) {
+    return /^\d{2}:\d{2}/.test(String(s || "").trim());
+  }
+
+  // Convert anything → YYYY-MM-DD or "".
+  function normalizeDate(value) {
+    const s = String(value || "").trim();
+    if (!s) return "";
+    if (isYmd(s)) return s;
+
+    // If ISO like 2026-02-05T23:00:00.000Z
+    if (s.includes("T")) {
+      const d = new Date(s);
+      if (Number.isFinite(d.getTime())) {
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+      }
+      // fallback: take left part
+      const left = s.split("T")[0];
+      return isYmd(left) ? left : "";
+    }
+
+    // If something else - last fallback
+    const d = new Date(s);
+    if (Number.isFinite(d.getTime())) {
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+    return "";
+  }
+
+  // Convert anything → HH:MM or "".
+  function normalizeTime(value) {
+    const s = String(value || "").trim();
+    if (!s) return "";
+    if (isHm(s)) return s.slice(0, 5);
+
+    // Google Sheets time-only stored as 1899-12-30T17:38:00.000Z (or local)
+    if (s.startsWith("1899-12-30") && s.includes("T")) {
+      const t = s.split("T")[1] || "";
+      const hhmm = t.slice(0, 5);
+      return isHm(hhmm) ? hhmm : "";
+    }
+
+    // If ISO datetime like 2026-02-05T23:00:00.000Z
+    if (s.includes("T")) {
+      const d = new Date(s);
+      if (Number.isFinite(d.getTime())) {
+        return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+      }
+      // fallback parse from the string directly
+      const t = s.split("T")[1] || "";
+      const hhmm = t.slice(0, 5);
+      return isHm(hhmm) ? hhmm : "";
+    }
+
+    // If plain time with seconds
+    if (/^\d{2}:\d{2}:\d{2}/.test(s)) return s.slice(0, 5);
+
+    // last fallback
+    const d = new Date(s);
+    if (Number.isFinite(d.getTime())) {
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+    return "";
+  }
+
+  function jobWhen(job) {
+    const d = normalizeDate(job?.date);
+    const t = normalizeTime(job?.time);
+    return `${d} ${t}`.trim();
+  }
+
+  function jobLabel(job) {
+    const code = job?.job_code ? `#${job.job_code}` : "";
+    const dog = job?.dog_name ? String(job.dog_name) : "Dog";
+    const city = job?.city ? String(job.city) : "";
+    const when = jobWhen(job);
+    return [code, dog, city, when].filter(Boolean).join(" · ");
+  }
+
+  /* ============ maps helper ============ */
+  function mapsSearchLink(query) {
+    const q = String(query || "").trim();
+    if (!q) return "";
+    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+  }
+
+  /* ============ time helpers (for posting guard) ============ */
+  function isoToday() {
+    return new Date().toISOString().slice(0, 10);
+  }
+  function roundUpToNextMinutes(step) {
+    const d = new Date();
+    const ms = d.getTime();
+    const stepMs = step * 60 * 1000;
+    const rounded = new Date(Math.ceil(ms / stepMs) * stepMs);
+    return `${pad2(rounded.getHours())}:${pad2(rounded.getMinutes())}`;
+  }
+  function minutesUntil(dateStr, timeStr) {
+    const d = normalizeDate(dateStr);
+    const t = normalizeTime(timeStr);
+    if (!d || !t) return NaN;
+    const dt = new Date(`${d}T${t}:00`);
+    const ms = dt.getTime();
+    if (!Number.isFinite(ms)) return NaN;
+    return (ms - Date.now()) / 60000;
+  }
+
+  /* ============ robust form field setter (fixes autofill mismatch) ============ */
+  function setField(form, keys, value, { onlyIfEmpty = true } = {}) {
+    if (!form || value == null) return false;
+    const val = String(value).trim();
+    if (!val) return false;
+
+    const tryOne = (k) => {
+      // 1) by name
+      const elByName = form.elements?.[k];
+      if (elByName && typeof elByName.value !== "undefined") {
+        if (!onlyIfEmpty || !String(elByName.value || "").trim()) elByName.value = val;
+        return true;
+      }
+      // 2) by id
+      const elById = document.getElementById(k);
+      if (elById && typeof elById.value !== "undefined") {
+        if (!onlyIfEmpty || !String(elById.value || "").trim()) elById.value = val;
+        return true;
+      }
+      // 3) query selector fallback
+      const elQS = form.querySelector?.(`[name="${k}"], #${CSS.escape(k)}`);
+      if (elQS && typeof elQS.value !== "undefined") {
+        if (!onlyIfEmpty || !String(elQS.value || "").trim()) elQS.value = val;
+        return true;
+      }
+      return false;
+    };
+
+    for (const k of keys) {
+      if (tryOne(k)) return true;
+    }
+    return false;
+  }
+
+  /* ============ expose open/close used by onclick ============ */
   window.openSignin = () => openDlg("signinModal");
   window.closeSignin = () => closeDlg("signinModal");
 
   window.openOwnerModal = () => {
     openDlg("ownerModal");
     prefillOwnerFromProfile();
-    setDateMinToday();
+    setDateMinTodayAndDefaultTime();
   };
   window.closeOwnerModal = () => closeDlg("ownerModal");
 
-  window.openJobs = () => {
-    openDlg("jobsModal");
-    refreshJobs();
-  };
+  window.openJobs = () => { openDlg("jobsModal"); refreshJobs(); };
   window.closeJobs = () => closeDlg("jobsModal");
 
-  window.openOwnerJobs = () => {
-    openDlg("ownerJobsModal");
-    refreshOwnerJobs();
-  };
+  window.openOwnerJobs = () => { openDlg("ownerJobsModal"); refreshOwnerJobs(); };
   window.closeOwnerJobs = () => closeDlg("ownerJobsModal");
 
-  window.openMyBids = () => {
-    openDlg("myBidsModal");
-    refreshMyBids();
-  };
+  window.openMyBids = () => { openDlg("myBidsModal"); refreshMyBids(); };
   window.closeMyBids = () => closeDlg("myBidsModal");
 
-  window.openCurrentWalks = () => {
-    openDlg("currentWalksModal");
-    refreshCurrentWalks();
-  };
+  window.openCurrentWalks = () => { openDlg("currentWalksModal"); refreshCurrentWalks(); };
   window.closeCurrentWalks = () => closeDlg("currentWalksModal");
 
-  window.openProfile = () => {
-    prefillProfileForm();
-    openDlg("profileModal");
-  };
+  window.openProfile = () => { prefillProfileForm(); openDlg("profileModal"); };
   window.closeProfile = () => closeDlg("profileModal");
 
-  window.closeChat = () => {
-    closeDlg("chatModal");
-    CURRENT_CHAT_JOB_ID = null;
-  };
+  window.closeChat = () => { closeDlg("chatModal"); CURRENT_CHAT_JOB_ID = null; };
 
+  /* dashboard switching */
   function showSignedInUI() {
-    const dash = document.getElementById("dash");
-    const marketing = document.getElementById("marketing");
-    if (dash) dash.style.display = "block";
-    if (marketing) marketing.style.display = "none";
+    document.getElementById("dash")?.style && (document.getElementById("dash").style.display = "block");
+    document.getElementById("marketing")?.style && (document.getElementById("marketing").style.display = "none");
   }
   function showSignedOutUI() {
-    const dash = document.getElementById("dash");
-    const marketing = document.getElementById("marketing");
-    if (dash) dash.style.display = "none";
-    if (marketing) marketing.style.display = "block";
+    document.getElementById("dash")?.style && (document.getElementById("dash").style.display = "none");
+    document.getElementById("marketing")?.style && (document.getElementById("marketing").style.display = "block");
   }
 
   function computeRoleFlags(prof) {
@@ -150,45 +265,6 @@
     const isOwner = prof.is_owner === "1" || role.includes("owner");
     const isWalker = prof.is_walker === "1" || role.includes("walker");
     return { isOwner, isWalker };
-  }
-
-  // human-friendly date/time
-  function fmtDateTime(dateStr, timeStr) {
-    const d = String(dateStr || "").trim();
-    const t = String(timeStr || "").trim();
-    if (!d && !t) return "";
-    // date input is usually YYYY-MM-DD
-    const dt = d ? new Date(`${d}T${t || "00:00"}:00`) : null;
-    if (dt && !Number.isNaN(dt.getTime())) {
-      return dt.toLocaleString(undefined, {
-        weekday: "short",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }
-    return `${d} ${t}`.trim();
-  }
-
-  function jobLabel(j) {
-    const code = j.job_code ? `#${j.job_code}` : "";
-    const dog = j.dog_name ? String(j.dog_name) : "Dog";
-    const city = j.city ? String(j.city) : "";
-    const when = fmtDateTime(j.date, j.time);
-    const parts = [];
-    if (code) parts.push(code);
-    parts.push(dog);
-    if (city) parts.push(city);
-    if (when) parts.push(when);
-    return parts.join(" · ");
-  }
-
-  // Build Google Maps link (safe query)
-  function mapsLinkQuery(q) {
-    const s = String(q || "").trim();
-    if (!s) return "";
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s)}`;
   }
 
   /* auth chip */
@@ -214,7 +290,6 @@
 
     const parts = [];
     parts.push(`<span class="user-chip-name">${esc(name)}</span>`);
-    // Only show buttons relevant to role
     if (isOwner) parts.push(`<span class="dot">·</span><button type="button" onclick="openOwnerModal()">Post walk</button>`);
     if (isWalker) parts.push(`<span class="dot">·</span><button type="button" onclick="openJobs()">Open walks</button>`);
     parts.push(`<span class="dot">·</span><button type="button" onclick="openCurrentWalks()">Current</button>`);
@@ -234,9 +309,9 @@
 
   /* ============ events ============ */
   function wireEvents() {
-    // SIGN IN
     document.getElementById("signinBtn")?.addEventListener("click", () => openDlg("signinModal"));
 
+    // SIGN IN
     document.getElementById("signinForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = e.target.email.value.trim();
@@ -327,7 +402,7 @@
       }
     });
 
-    // OWNER POST WALK
+    // OWNER POST WALK (UI time rule)
     document.getElementById("ownerForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const token = getToken();
@@ -340,8 +415,11 @@
 
       const job = Object.fromEntries(new FormData(e.target).entries());
 
-      // Small dog size helper (UI only)
-      // We keep value in dog_size but show the info in the modal (modals.html change is separate)
+      const mins = minutesUntil(job.date, job.time);
+      if (!Number.isFinite(mins)) return showToast("Please choose valid date + time.");
+      if (mins <= 0) return showToast("This time is in the past.");
+      if (mins > 240) return showToast("You can post only within 4 hours before start.");
+
       const res = await postForm({ action: "create_job", token, job });
       window.setDebug(res);
 
@@ -383,9 +461,10 @@
     const form = document.getElementById("profileForm");
     if (!form) return;
 
-    const map = (k) => form.querySelector(`[name="${k}"]`);
+    const set = (k, v) => setField(form, [k], v, { onlyIfEmpty: false });
+
     ["name", "email", "phone", "address", "city", "pay_method", "bio", "role"].forEach((k) => {
-      if (map(k) && prof[k]) map(k).value = prof[k];
+      if (prof[k]) set(k, prof[k]);
     });
 
     const { isOwner, isWalker } = computeRoleFlags(prof);
@@ -393,31 +472,49 @@
     if (form.elements["is_walker"]) form.elements["is_walker"].checked = isWalker;
   }
 
+  // ✅ Robust autofill (works even if your input names differ)
   function prefillOwnerFromProfile() {
     const prof = getProfile() || {};
     const form = document.getElementById("ownerForm");
     if (!form) return;
 
-    // Prefill what we can
-    if (prof.name) form.elements["name"].value = prof.name;
-    if (prof.email) form.elements["email"].value = prof.email;
-    if (prof.phone) form.elements["phone"].value = prof.phone;
-    if (prof.city) form.elements["city"].value = prof.city;
-    if (prof.address) form.elements["address"].value = prof.address;
+    // common field name variants
+    setField(form, ["name", "owner_name"], prof.name);
+    setField(form, ["phone", "owner_phone"], prof.phone);
+    setField(form, ["email", "owner_email"], prof.email);
+    setField(form, ["city"], prof.city);
+    setField(form, ["address"], prof.address);
+    setField(form, ["pay_method", "payment", "payment_method"], prof.pay_method);
 
-    // set sensible defaults
-    const dur = form.elements["duration"];
-    if (dur && !dur.value) dur.value = "60";
-    const dogSize = form.elements["dog_size"];
-    if (dogSize && !dogSize.value) dogSize.value = "MEDIUM";
+    // optional
+    setField(form, ["dog_name"], prof.dog_name);
+    setField(form, ["dog_size"], prof.dog_size);
+    setField(form, ["temperament"], prof.temperament);
   }
 
-  function setDateMinToday() {
-    const el = document.getElementById("date_owner");
-    if (!el) return;
-    const today = new Date().toISOString().slice(0, 10);
-    el.min = today;
-    if (!el.value) el.value = today;
+  function setDateMinTodayAndDefaultTime() {
+    // try ids first, then names
+    const form = document.getElementById("ownerForm");
+    const today = isoToday();
+
+    // date
+    const dateEl =
+      document.getElementById("date_owner") ||
+      form?.elements?.["date_owner"] ||
+      form?.elements?.["date"];
+    if (dateEl) {
+      dateEl.min = today;
+      if (!String(dateEl.value || "").trim()) dateEl.value = today;
+    }
+
+    // time
+    const timeEl =
+      document.getElementById("time_owner") ||
+      form?.elements?.["time_owner"] ||
+      form?.elements?.["time"];
+    if (timeEl) {
+      if (!String(timeEl.value || "").trim()) timeEl.value = roundUpToNextMinutes(15);
+    }
   }
 
   /* ============ dashboard ============ */
@@ -425,21 +522,18 @@
     const prof = getProfile() || {};
     const { isOwner, isWalker } = computeRoleFlags(prof);
 
-    const dashTitle = document.getElementById("dashTitle");
+    document.getElementById("dashTitle") && (document.getElementById("dashTitle").textContent = `Welcome, ${prof.name || "there"}.`);
     const dashSub = document.getElementById("dashSub");
-
-    if (dashTitle) dashTitle.textContent = `Welcome, ${prof.name || "there"}.`;
     if (dashSub) {
       dashSub.textContent =
         isOwner && isWalker ? "Owner + Walker mode enabled. Pick what you want to do now." :
-        isOwner ? "Owner mode: post a walk → review bids inside your walk." :
-        isWalker ? "Walker mode: bid, then accept/decline counters from My bids." :
+        isOwner ? "Owner mode: post a walk → review bids." :
+        isWalker ? "Walker mode: bid → accept/decline counters." :
         "Complete your profile to unlock owner/walker features.";
     }
 
     const ownerLatestCard = document.getElementById("ownerLatestCard");
     const walkerHintCard = document.getElementById("walkerHintCard");
-
     if (ownerLatestCard) ownerLatestCard.style.display = isOwner ? "block" : "none";
     if (walkerHintCard) walkerHintCard.style.display = isWalker ? "block" : "none";
 
@@ -472,8 +566,8 @@
     const j = jobs[0];
     body.innerHTML = `
       <div style="font-weight:900;">${esc(jobLabel(j))}</div>
-      <div class="muted" style="font-size:12px;margin-top:4px;">
-        Status: <b>${esc(j.status || "")}</b>
+      <div class="muted" style="font-size:12px;margin-top:6px;">
+        ${esc(j.duration || "")} min • status: <b>${esc(j.status || "")}</b>
       </div>
       ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
     `;
@@ -493,13 +587,13 @@
     const actions = document.getElementById("walkerPanelActions");
     if (!body || !actions) return;
 
-    // current walk first
     const cw = await postForm({ action: "current_walks", token });
     const current = (cw.jobs || [])[0];
+
     if (current) {
       body.innerHTML = `
         <div style="font-weight:900;">Current walk</div>
-        <div class="muted" style="font-size:12px;margin-top:4px;">${esc(jobLabel(current))}</div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">${esc(jobLabel(current))}</div>
       `;
       actions.innerHTML = `
         <button class="btn btn-outline btn-small" type="button" onclick="openCurrentWalks()">Open</button>
@@ -508,7 +602,6 @@
       return;
     }
 
-    // latest bid
     const mb = await postForm({ action: "my_bids", token });
     const bids = mb.bids || [];
     const b = bids[0];
@@ -524,7 +617,7 @@
 
     body.innerHTML = `
       <div style="font-weight:900;">Latest bid</div>
-      <div class="muted" style="font-size:12px;margin-top:4px;">Walk: <b>${esc(b.job_id || "")}</b></div>
+      <div class="muted" style="font-size:12px;margin-top:6px;">Walk: ${esc(b.job_id)}</div>
       <div class="muted" style="font-size:12px;margin-top:4px;">
         Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b> ${counterLine}
       </div>
@@ -563,30 +656,28 @@
     }
 
     list.innerHTML = jobs.map((j) => {
-      const approxMap = mapsLinkQuery(j.city || "");
-      const when = fmtDateTime(j.date, j.time);
-      const size = String(j.dog_size || "").trim();
-
+      const approxLink = j.approx_maps_link || mapsSearchLink(j.city);
       return `
       <div class="card" style="margin-bottom:10px;">
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
-              <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(when)} • ${esc(j.duration || "")} min • max ${money(j.max_price)}
+              <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
+              <div class="muted" style="font-size:12px;margin-top:6px;">
+                ${esc(j.duration || "")} min • max ${money(j.max_price)}
               </div>
-              ${size ? `<div class="muted" style="font-size:12px;margin-top:4px;">Dog size: <b>${esc(size)}</b></div>` : ``}
+              ${j.dog_size ? `<div class="muted" style="font-size:12px;margin-top:6px;">Dog size: <b>${esc(j.dog_size)}</b></div>` : ``}
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
-              ${approxMap ? `<div style="margin-top:10px;"><a class="btn btn-ghost btn-small" target="_blank" href="${approxMap}">🗺 Approx area</a></div>` : ``}
+              <div style="margin-top:10px;">
+                <a class="btn btn-outline btn-small" href="${esc(approxLink)}" target="_blank" rel="noopener">Approx area</a>
+              </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               <button class="btn btn-primary btn-small" onclick="openBidSheet('${esc(j.job_id)}','${esc(j.max_price || "")}')">Bid</button>
             </div>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
     }).join("");
   }
 
@@ -634,7 +725,7 @@
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
               <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
-              <div class="muted" style="font-size:12px;margin-top:4px;">
+              <div class="muted" style="font-size:12px;margin-top:6px;">
                 Duration: ${esc(j.duration || "")} min • Status: <b>${esc(j.status || "")}</b>
               </div>
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
@@ -684,9 +775,8 @@
     wrap.innerHTML = bids.map((b) => {
       const initials = (b.walker_name || "W").trim().slice(0, 1).toUpperCase();
       const status = String(b.status || "").toLowerCase();
-
       const counterInfo = b.counter_amount
-        ? `<div class="muted" style="font-size:12px;margin-top:6px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
+        ? `<div class="muted" style="font-size:12px;margin-top:4px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
         : "";
 
       return `
@@ -734,9 +824,6 @@
                     <button class="btn btn-ghost btn-small" type="button"
                       onclick="toggleCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Cancel</button>
                   </div>
-                  <div class="muted" style="font-size:11px;margin-top:6px;">
-                    You can accept/counter until 30 minutes before walk start.
-                  </div>
                 </div>
 
               </div>
@@ -780,79 +867,7 @@
     showToast("Accepted");
     await refreshOwnerJobs();
     await refreshOwnerLatestPreview();
-    await refreshCurrentWalks().catch(() => {});
-  };
-
-  /* ============ my bids (walker) ============ */
-  async function refreshMyBids() {
-    const token = getToken();
-    if (!token) return;
-
-    const list = document.getElementById("myBidsList");
-    const empty = document.getElementById("myBidsEmpty");
-    if (list) list.innerHTML = "";
-    if (empty) empty.style.display = "none";
-
-    const res = await postForm({ action: "my_bids", token });
-    window.setDebug(res);
-
-    const bids = res.bids || [];
-    if (!bids.length) {
-      if (empty) empty.style.display = "block";
-      await refreshWalkerPanel().catch(() => {});
-      return;
-    }
-
-    list.innerHTML = bids.map((b) => {
-      const st = String(b.status || "").toLowerCase();
-      const hasCounter = st === "countered" && b.counter_amount;
-
-      return `
-        <div class="card" style="margin-bottom:12px;">
-          <div class="card-inner">
-            <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
-              <div style="flex:1;">
-                <div style="font-weight:900;">Bid on walk</div>
-                <div class="muted" style="font-size:12px;margin-top:4px;">
-                  Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b>
-                </div>
-                ${hasCounter ? `<div class="muted" style="font-size:12px;margin-top:6px;">Owner counter: <b>${money(b.counter_amount)}</b></div>` : ``}
-              </div>
-
-              ${hasCounter ? `
-                <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-                  <button class="btn btn-primary btn-small" type="button" onclick="acceptCounter('${esc(b.job_id)}','${esc(b.bid_id)}')">Accept counter</button>
-                  <button class="btn btn-outline btn-small" type="button" onclick="declineCounter('${esc(b.job_id)}','${esc(b.bid_id)}')">Decline</button>
-                </div>
-              ` : ``}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    await refreshWalkerPanel().catch(() => {});
-  }
-
-  window.acceptCounter = async function (jobId, bidId) {
-    const token = getToken();
-    const res = await postForm({ action: "accept_counter", token, job_id: jobId, bid_id: bidId });
-    window.setDebug(res);
-
-    if (!res?.ok) return showToast(res?.error || "Could not accept counter");
-    showToast("Counter accepted");
-    await refreshMyBids();
-    await refreshCurrentWalks().catch(() => {});
-  };
-
-  window.declineCounter = async function (jobId, bidId) {
-    const token = getToken();
-    const res = await postForm({ action: "decline_counter", token, job_id: jobId, bid_id: bidId });
-    window.setDebug(res);
-
-    if (!res?.ok) return showToast(res?.error || "Could not decline counter");
-    showToast("Declined");
-    await refreshMyBids();
+    await refreshCurrentWalks().catch(()=>{});
   };
 
   /* ============ current walks ============ */
@@ -871,43 +886,35 @@
     const jobs = res.jobs || [];
     if (!jobs.length) {
       if (empty) empty.style.display = "block";
-      await refreshWalkerPanel().catch(() => {});
       return;
     }
 
     list.innerHTML = jobs.map((j) => {
-      const when = fmtDateTime(j.date, j.time);
-      // after acceptance we expect address to be used for exact map (backend will provide)
-      // fallback: use address if present else city
-      const q = (j.address && j.city) ? `${j.address}, ${j.city}` : (j.address || j.city || "");
-      const map = q ? mapsLinkQuery(q) : "";
-
+      const mapLink = j.maps_link || mapsSearchLink([j.address, j.city].filter(Boolean).join(", "));
       return `
       <div class="card" style="margin-bottom:12px;">
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
               <div style="font-weight:900;font-size:16px;">${esc(jobLabel(j))}</div>
-              <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(when)} • ${esc(j.duration || "")} min
+              <div class="muted" style="font-size:12px;margin-top:6px;">
+                ${esc(j.duration || "")} min
               </div>
-              ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
-              ${map ? `<div style="margin-top:10px;"><a class="btn btn-outline btn-small" target="_blank" href="${map}">🗺 Open directions</a></div>` : ``}
+              ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:8px;">${esc(j.notes)}</div>` : ``}
+              <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                <a class="btn btn-outline btn-small" href="${esc(mapLink)}" target="_blank" rel="noopener">Directions</a>
+              </div>
             </div>
-
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(j.job_id)}')">Chat</button>
             </div>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
     }).join("");
-
-    await refreshWalkerPanel().catch(() => {});
   }
 
-  /* ============ chat ============ */
+  /* ============ chat (no emails) ============ */
   window.openChat = async function (jobId) {
     CURRENT_CHAT_JOB_ID = jobId;
     const head = document.getElementById("chatHeader");
@@ -918,8 +925,7 @@
 
   window.loadChat = async function () {
     const token = getToken();
-    if (!token) return;
-    if (!CURRENT_CHAT_JOB_ID) return;
+    if (!token || !CURRENT_CHAT_JOB_ID) return;
 
     const box = document.getElementById("chatMessages");
     if (!box) return;
@@ -939,20 +945,12 @@
       return;
     }
 
-    box.innerHTML = msgs.map((m) => {
-      const ts = new Date(m.ts);
-      const tss = Number.isNaN(ts.getTime())
-        ? ""
-        : ts.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", month: "short", day: "2-digit" });
-
-      return `
-        <div class="chat-msg">
-          <div class="chat-meta"><b>${esc(m.sender_name || "User")}</b> · <span>${esc(tss)}</span></div>
-          <div class="chat-body">${esc(m.body)}</div>
-        </div>
-      `;
-    }).join("");
-
+    box.innerHTML = msgs.map((m) => `
+      <div class="chat-msg">
+        <div class="chat-meta"><b>${esc(m.sender_name || "User")}</b> · <span>${esc(new Date(m.ts).toLocaleString())}</span></div>
+        <div class="chat-body">${esc(m.body)}</div>
+      </div>
+    `).join("");
     box.scrollTop = box.scrollHeight;
   };
 
@@ -962,8 +960,7 @@
       document.getElementById("signinForm") &&
       document.getElementById("codeForm") &&
       document.getElementById("profileForm") &&
-      document.getElementById("ownerForm") &&
-      document.getElementById("chatForm");
+      document.getElementById("ownerForm");
 
     if (!ok) {
       setTimeout(waitForModalsThenInit, 30);
@@ -971,19 +968,29 @@
     }
 
     wireEvents();
-    setDateMinToday();
+    setDateMinTodayAndDefaultTime();
     renderAuthUI();
-
     const yr = document.getElementById("yr");
     if (yr) yr.textContent = new Date().getFullYear();
   }
 
+  function showSignedInUI() {
+    const dash = document.getElementById("dash");
+    const marketing = document.getElementById("marketing");
+    if (dash) dash.style.display = "block";
+    if (marketing) marketing.style.display = "none";
+  }
+  function showSignedOutUI() {
+    const dash = document.getElementById("dash");
+    const marketing = document.getElementById("marketing");
+    if (dash) dash.style.display = "none";
+    if (marketing) marketing.style.display = "block";
+  }
+
   waitForModalsThenInit();
 
-  // expose refresh
   window.refreshJobs = refreshJobs;
   window.refreshOwnerJobs = refreshOwnerJobs;
-  window.refreshMyBids = refreshMyBids;
   window.refreshCurrentWalks = refreshCurrentWalks;
   window.renderDash = renderDash;
 })();
