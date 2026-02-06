@@ -18,9 +18,9 @@
         <div class="brand-text">
           <div class="brand-title">
             IGO
-            <span class="brand-pill">No passwords · No insurance</span>
+            <span class="brand-pill">No passwords · Privacy-first</span>
           </div>
-          <div class="brand-sub">Futuristic hub connecting dog owners & walkers — you stay in control.</div>
+          <div class="brand-sub">A clean hub connecting owners & walkers — you stay in control.</div>
         </div>
       </div>
 
@@ -35,6 +35,8 @@
          ========================= -->
     <main id="dash" style="display:none;">
       <section class="dash-wrap">
+
+        <!-- LEFT -->
         <div class="dash-left card">
           <div class="card-inner">
             <div class="hero-kicker">YOUR DASHBOARD</div>
@@ -51,21 +53,9 @@
                 <span class="icon">🛰</span>Open walks
               </button>
               <button class="btn btn-outline" type="button" onclick="openCurrentWalks()">
-                <span class="icon">📡</span>Current walk
+                <span class="icon">📡</span>Current
               </button>
               <button class="btn btn-ghost" type="button" onclick="openMyBids()">My bids</button>
-            </div>
-
-            <!-- ✅ Values box -->
-            <div class="dash-mini card" style="margin-top:14px;">
-              <div class="card-inner">
-                <div class="dash-mini-title">Our values</div>
-                <div class="muted" style="font-size:12px;line-height:1.5;margin-top:6px;">
-                  • For every pet to have a good life<br/>
-                  • No pets left alone<br/>
-                  • For our pets to look back and feel they had a good life
-                </div>
-              </div>
             </div>
 
             <!-- Owner “latest walk” shortcut -->
@@ -83,7 +73,7 @@
               </div>
             </div>
 
-            <!-- Walker panel -->
+            <!-- Walker panel (filled by UI JS) -->
             <div id="walkerHintCard" class="dash-mini card" style="margin-top:14px; display:none;">
               <div class="card-inner">
                 <div class="dash-mini-title" id="walkerPanelTitle">Walker</div>
@@ -95,41 +85,70 @@
             <div class="trust-line" style="margin-top:14px;">
               <div class="trust-icon">!</div>
               <span>
-                igo does not provide insurance. It’s a matching hub only.
-                For testing, the code <b>555555</b> always works.
+                igo is a matching hub — no insurance. For testing, the code <b>555555</b> always works.
               </span>
             </div>
+
           </div>
         </div>
 
-        <div class="dash-right card">
-          <div class="card-inner">
-            <div class="side-badge-row">
-              <h2 style="margin:0;">What’s next</h2>
-              <div class="side-badge">Minimal steps</div>
-            </div>
+        <!-- RIGHT -->
+        <div class="dash-right" style="display:flex;flex-direction:column;gap:14px;">
 
-            <div class="dash-next" id="dashNext">
-              <div class="dash-next-item">
-                <div class="dash-next-title">1) Post or pick a walk</div>
-                <div class="dash-next-desc">Owners post. Walkers bid or accept.</div>
+          <!-- Our values (new, same style as What's next) -->
+          <div class="card">
+            <div class="card-inner">
+              <div class="side-badge-row">
+                <h2 style="margin:0;">Our values</h2>
+                <div class="side-badge">Dogs first</div>
               </div>
-              <div class="dash-next-item">
-                <div class="dash-next-title">2) Decide fast</div>
-                <div class="dash-next-desc">Owners accept/counter right from the walk.</div>
-              </div>
-              <div class="dash-next-item">
-                <div class="dash-next-title">3) One walk at a time</div>
-                <div class="dash-next-desc">After acceptance, the walk becomes “Current” until done.</div>
-              </div>
-            </div>
 
-            <p class="quote" style="margin-top:14px;">
-              “Dogs don’t care about screens. They care that the human at the other end of the leash is calm,
-              kind, and paying attention.” 🐾
-            </p>
+              <ul class="steps" style="margin-top:10px;">
+                <li><b>Every dog deserves a calm, safe walk.</b></li>
+                <li><b>No dog left alone</b> — clear pickup & handoff.</li>
+                <li><b>Privacy-first</b> — exact address only after acceptance.</li>
+                <li><b>Respect routines</b> — owners choose what matters.</li>
+                <li><b>Kind communication</b> — chat stays simple + useful.</li>
+              </ul>
+
+              <p class="muted" style="margin-top:10px;font-size:12px;">
+                We want every dog to “look back” and feel they had a good life — one walk at a time.
+              </p>
+            </div>
           </div>
+
+          <!-- What’s next -->
+          <div class="card">
+            <div class="card-inner">
+              <div class="side-badge-row">
+                <h2 style="margin:0;">What’s next</h2>
+                <div class="side-badge">Minimal steps</div>
+              </div>
+
+              <div class="dash-next" id="dashNext" style="margin-top:10px;">
+                <div class="dash-next-item">
+                  <div class="dash-next-title">1) Post or pick a walk</div>
+                  <div class="dash-next-desc">Owners post. Walkers bid or accept (first-to-accept).</div>
+                </div>
+                <div class="dash-next-item">
+                  <div class="dash-next-title">2) Decide fast</div>
+                  <div class="dash-next-desc">Accept / counter directly inside the walk.</div>
+                </div>
+                <div class="dash-next-item">
+                  <div class="dash-next-title">3) Get directions</div>
+                  <div class="dash-next-desc">Google Maps link appears after acceptance.</div>
+                </div>
+              </div>
+
+              <p class="quote" style="margin-top:14px;">
+                “Dogs don’t care about screens. They care that the human holding the leash is calm,
+                kind, and paying attention.” 🐾
+              </p>
+            </div>
+          </div>
+
         </div>
+
       </section>
     </main>
 
@@ -140,11 +159,11 @@
       <section class="hero-grid">
         <div class="card card-soft-gradient">
           <div class="card-inner">
-            <div class="hero-kicker">TRUSTED · TRANSPARENT · REAL-TIME</div>
+            <div class="hero-kicker">TRUSTED · TRANSPARENT · PRIVACY-FIRST</div>
             <h1>Find a safe human for your dog, in your city.</h1>
             <p class="muted">
               Owners publish walk requests. Walkers nearby accept or bid.
-              igo is only the matching brain — you stay in control and responsibility.
+              igo is only the matching brain — you stay in in control and responsibility.
             </p>
 
             <div class="hero-cta-row">
@@ -173,9 +192,9 @@
             </div>
             <ol class="steps">
               <li>Sign in with your email (6-digit code).</li>
-              <li>Fill your profile and tick owner/walker/both.</li>
-              <li>Owners post walks. Walkers bid or accept.</li>
-              <li>Once accepted, it becomes a “Current walk” until done.</li>
+              <li>Fill your profile and tick owner / walker / both.</li>
+              <li>Owners post walks. Walkers bid or “first accept”.</li>
+              <li>After acceptance, it becomes “Current” until done.</li>
             </ol>
           </div>
         </div>
@@ -190,11 +209,12 @@
   </div>
 
   <div id="toast" class="toast">Saved.</div>
-  <div id="debug" style="display:none;">
+  <div id="debug">
     <b>Last server response</b><br/>
     <small>Toggle with Ctrl/Cmd + D</small>
     <pre id="dbgpre">–</pre>
   </div>
+
   <div id="modalsMount"></div>
 
   <script src="api.js"></script>
