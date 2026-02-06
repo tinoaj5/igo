@@ -1,5 +1,5 @@
 // ====== CONFIG ======
-const API_URL = "https://script.google.com/macros/s/AKfycbxMmD4GM4MR8C58OfgfvCCS_u3RfzEgr-YPQ3OUkABATnKTsXQRvnvK7Jeqadgn-crtVQ/exec"; // <-- put your Apps Script URL here
+const API_URL = "https://script.google.com/macros/s/AKfycbzT15hEXeZPIwaNC3hJQqz0-hddQegGVgMwnJh5yix2joUMzhdSxYFPDuJFFcW23D1rLA/exec"; // <-- put your Apps Script URL here
 
 // ====== GLOBAL STATE ======
 const state = {
@@ -52,7 +52,7 @@ function setLoading(btn, isLoading) {
   }
 }
 
-// ---- Nice date formatting for jobs ----
+// ---- Pretty date formatting for jobs ----
 function formatJobWhen(job) {
   let dateText = "";
   let timeText = "";
@@ -85,12 +85,26 @@ function formatJobWhen(job) {
   return [dateText, timeText].filter(Boolean).join(" · ");
 }
 
+// **NEW** short title (no code)
+function jobTitle(job) {
+  const dog = job.dog_name || "Dog";
+  const city = job.city || "";
+  const title = [dog, city].filter(Boolean).join(" · ");
+  return title || "Walk";
+}
+
+// **Existing** full label with code, used in meta or emails if needed
 function jobHuman(job) {
   const code = job.job_code ? `#${job.job_code}` : "";
   const dog = job.dog_name || "Dog";
   const city = job.city || "";
   const when = formatJobWhen(job);
   return [code, dog, city, when].filter(Boolean).join(" · ");
+}
+
+// **NEW** for the small "ID #CODE" meta bit
+function jobIdLabel(job) {
+  return job.job_code ? `ID #${job.job_code}` : "";
 }
 
 // ====== API WRAPPER ======
@@ -322,13 +336,15 @@ function renderLatestOwner() {
 
   container.classList.remove("empty-state");
   const when = formatJobWhen(latest);
+  const codeLabel = jobIdLabel(latest);
 
   container.innerHTML = `
     <div>
       <div class="job-header">
         <div>
-          <div class="job-title">${jobHuman(latest)}</div>
+          <div class="job-title">${jobTitle(latest)}</div>
           <div class="job-meta">
+            ${codeLabel ? `<span>${codeLabel}</span>` : ""}
             ${when ? `<span>${when}</span>` : ""}
             <span>${latest.duration || "?"} min</span>
             <span>${latest.max_price ? latest.max_price + " CHF max" : "No max set"}</span>
@@ -366,13 +382,15 @@ function renderDashboardCurrent() {
   container.classList.remove("empty-state");
   const mapsLink = job.maps_link;
   const when = formatJobWhen(job);
+  const codeLabel = jobIdLabel(job);
 
   container.innerHTML = `
     <div>
       <div class="job-header">
         <div>
-          <div class="job-title">${jobHuman(job)}</div>
+          <div class="job-title">${jobTitle(job)}</div>
           <div class="job-meta">
+            ${codeLabel ? `<span>${codeLabel}</span>` : ""}
             ${when ? `<span>${when}</span>` : ""}
             <span>${job.duration || "?"} min</span>
             <span>${job.pay_method || ""}</span>
@@ -474,8 +492,8 @@ async function submitPostWalk(e) {
     await api("create_job", { token: state.token, job });
     if (statusEl) statusEl.textContent = "Walk posted ✔️";
     showToast("Walk posted ✔️");
-    const ownerRes = await api("owner_jobs", { token: state.token });
-    state.ownerJobs = ownerRes.jobs || [];
+
+    // small speed improvement: just reload dashboard once
     await loadDashboard();
   } catch (err) {
     console.error(err);
@@ -502,13 +520,16 @@ async function loadOpenJobsView() {
     list.innerHTML = "";
     jobs.forEach((job) => {
       const when = formatJobWhen(job);
+      const codeLabel = jobIdLabel(job);
+
       const card = document.createElement("div");
       card.className = "card";
       card.innerHTML = `
         <div class="job-header">
           <div>
-            <div class="job-title">${jobHuman(job)}</div>
+            <div class="job-title">${jobTitle(job)}</div>
             <div class="job-meta">
+              ${codeLabel ? `<span>${codeLabel}</span>` : ""}
               ${when ? `<span>${when}</span>` : ""}
               <span>${job.duration || "?"} min</span>
               <span>${job.max_price ? job.max_price + " CHF max" : "Owner decides with bids"}</span>
@@ -615,14 +636,16 @@ async function loadCurrentView() {
           String(state.profile.email).toLowerCase();
 
       const when = formatJobWhen(job);
+      const codeLabel = jobIdLabel(job);
 
       const card = document.createElement("div");
       card.className = "card";
       card.innerHTML = `
         <div class="job-header">
           <div>
-            <div class="job-title">${jobHuman(job)}</div>
+            <div class="job-title">${jobTitle(job)}</div>
             <div class="job-meta">
+              ${codeLabel ? `<span>${codeLabel}</span>` : ""}
               ${when ? `<span>${when}</span>` : ""}
               <span>${job.duration || "?"} min</span>
               <span>${job.pay_method || ""}</span>
@@ -765,15 +788,26 @@ async function openOwnerJob(jobId) {
     return;
   }
   const titleEl = $("#owner-job-title");
-  if (titleEl) titleEl.textContent = jobHuman(job);
+  if (titleEl) titleEl.textContent = jobTitle(job);
+
+  const when = formatJobWhen(job);
+  const codeLabel = jobIdLabel(job);
   const subEl = $("#owner-job-sub");
-  if (subEl) subEl.textContent = (job.notes || job.temperament || "").slice(0, 140);
+  if (subEl) {
+    const parts = [];
+    if (codeLabel) parts.push(codeLabel);
+    if (when) parts.push(when);
+    if (job.notes || job.temperament) {
+      parts.push((job.notes || job.temperament).slice(0, 80));
+    }
+    subEl.textContent = parts.join(" · ");
+  }
 
   const meta = $("#owner-job-meta");
   if (meta) {
-    const when = formatJobWhen(job);
     meta.innerHTML = `
       <div class="job-meta" style="margin-bottom:0.4rem;">
+        ${codeLabel ? `<span>${codeLabel}</span>` : ""}
         ${when ? `<span>${when}</span>` : ""}
         <span>${job.city || ""}</span>
         <span>${job.duration || "?"} min</span>
@@ -916,7 +950,7 @@ async function loadMyBidsView() {
       card.className = "card";
       card.innerHTML = `
         <div class="job-header">
-          <div class="job-title">Bid on ${b.job_id}</div>
+          <div class="job-title">Bid on ${jobIdLabel(b) || b.job_id}</div>
           <span class="badge badge-status-${status}">${b.status}</span>
         </div>
         <div class="job-meta">
