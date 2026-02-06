@@ -1,5 +1,5 @@
 // ====== CONFIG ======
-const API_URL = "https://script.google.com/macros/s/AKfycbxMmD4GM4MR8C58OfgfvCCS_u3RfzEgr-YPQ3OUkABATnKTsXQRvnvK7Jeqadgn-crtVQ/exec"; // <-- put your Apps Script web app URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxMmD4GM4MR8C58OfgfvCCS_u3RfzEgr-YPQ3OUkABATnKTsXQRvnvK7Jeqadgn-crtVQ/exec"; // <-- put your Apps Script URL here
 
 // ====== GLOBAL STATE ======
 const state = {
@@ -13,12 +13,11 @@ const state = {
 // ====== DOM HELPERS ======
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-const on = (id, event, handler) => {
+const on = (id, ev, handler) => {
   const el = document.getElementById(id);
-  if (el) el.addEventListener(event, handler);
+  if (el) el.addEventListener(ev, handler);
 };
 
-// For forms: find the first submit button in that form
 function getSubmitButton(e) {
   const form = e.target;
   if (!form || !form.querySelector) return null;
@@ -91,7 +90,7 @@ async function api(action, data = {}) {
   return json;
 }
 
-// ====== VIEW SWITCHING / NAV ======
+// ====== VIEW / NAV ======
 function showView(id) {
   $$(".view").forEach((v) => v.classList.remove("active"));
   const el = document.getElementById("view-" + id);
@@ -224,12 +223,12 @@ async function saveProfileFromForm(e) {
 
   try {
     const profile = {
-      name: ($("#profile-name") || {}).value?.trim?.() || ($("#profile-name")?.value || "").trim(),
-      phone: ($("#profile-phone") || {}).value?.trim?.() || ($("#profile-phone")?.value || "").trim(),
-      city: ($("#profile-city") || {}).value?.trim?.() || ($("#profile-city")?.value || "").trim(),
-      address: ($("#profile-address") || {}).value?.trim?.() || ($("#profile-address")?.value || "").trim(),
-      pay_method: ($("#profile-pay") || {}).value?.trim?.() || ($("#profile-pay")?.value || "").trim(),
-      bio: ($("#profile-bio") || {}).value?.trim?.() || ($("#profile-bio")?.value || "").trim(),
+      name: ($("#profile-name")?.value || "").trim(),
+      phone: ($("#profile-phone")?.value || "").trim(),
+      city: ($("#profile-city")?.value || "").trim(),
+      address: ($("#profile-address")?.value || "").trim(),
+      pay_method: ($("#profile-pay")?.value || "").trim(),
+      bio: ($("#profile-bio")?.value || "").trim(),
     };
     const roleEl = $("#profile-role");
     const role = roleEl ? roleEl.value : "";
@@ -971,7 +970,7 @@ function bindEvents() {
     showView("landing");
   });
 
-  // Nav buttons
+  // Nav
   $$(".nav-btn").forEach((btn) => {
     const target = btn.dataset.nav;
     if (!target) return;
@@ -1054,7 +1053,7 @@ function bindEvents() {
     formPost.addEventListener("submit", submitPostWalk);
   }
 
-  // Owner-job back
+  // Owner job back
   on("btn-owner-job-back", "click", function () {
     showView("dashboard");
   });
