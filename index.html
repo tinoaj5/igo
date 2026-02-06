@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>igo — Futuristic dog walking hub</title>
+  <title>igo — Dog walking hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="styles.css" />
   <script defer src="app.js"></script>
@@ -14,7 +14,7 @@
       <div class="brand">
         <span class="brand-dot"></span>
         <span class="brand-title">igo</span>
-        <span class="brand-tagline">no passwords · privacy-first</span>
+        <span class="brand-tagline">dog walks · local & simple</span>
       </div>
       <nav class="top-nav">
         <button class="nav-btn" data-nav="landing" id="nav-landing">Home</button>
@@ -31,40 +31,40 @@
     <!-- Main content -->
     <main class="main" id="main">
 
-      <!-- Landing / Marketing -->
+      <!-- Landing -->
       <section class="view active" id="view-landing">
         <div class="layout-split">
           <div class="card hero-card">
-            <h1>Find a safe human for your dog, in your city.</h1>
+            <h1>Safe humans for good dogs, in your city.</h1>
             <p class="hero-sub">
-              Owners publish walk requests. Walkers nearby accept or bid.
-              igo is only the matching brain — you stay in control and responsibility.
+              Owners post walks; walkers nearby accept or bid. igo is just the matching brain — you stay in control.
             </p>
             <div class="hero-actions">
               <button class="btn btn-primary" id="btn-landing-signin">✦ Sign in</button>
-              <button class="btn btn-ghost" id="btn-landing-learn">How igo works</button>
+              <button class="btn btn-ghost" id="btn-landing-learn">How it works</button>
             </div>
             <p class="hero-note">
-              For testing, the code <code>555555</code> always works.
+              Test login code: <code>555555</code> (always valid).
             </p>
           </div>
+
           <div class="card hero-info-card">
-            <h2>Dogs first.</h2>
-            <ul class="bullet-list">
-              <li>Privacy-first — exact address only after acceptance.</li>
-              <li>Clear pickup &amp; handoff between owner &amp; walker.</li>
-              <li>Kind communication — chat stays simple + useful.</li>
-              <li>City-focused · human in the loop.</li>
-            </ul>
-            <h3>Minimal steps</h3>
+            <h2>How igo works</h2>
             <ol class="numbered-list">
-              <li>Sign in with your email (6-digit code).</li>
-              <li>Fill your profile and tick owner / walker / both.</li>
-              <li>Owners post walks. Walkers bid or accept.</li>
-              <li>After acceptance, it moves to “Current” until done.</li>
+              <li>Sign in with email (we send a 6-digit code).</li>
+              <li>Set your profile: owner, walker, or both.</li>
+              <li>Owners post walks; walkers see them by city.</li>
+              <li>Walkers bid or accept; once assigned, address + chat unlock.</li>
             </ol>
+            <h3>Why it’s simple</h3>
+            <ul class="bullet-list">
+              <li>Exact address is only shared after a walk is accepted.</li>
+              <li>City-based emails for walkers — no spam from other cities.</li>
+              <li>Clear status: open → assigned → done.</li>
+              <li>No passwords. No app install. Just the web.</li>
+            </ul>
             <p class="footnote">
-              igo does not provide insurance. igo is only a matching hub.
+              igo does not provide insurance or take responsibility for the walk. It's only a matching tool.
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@
               <button class="btn btn-outline" id="btn-go-my-bids">My bids</button>
             </div>
             <p class="hint">
-              Tip: “View bids” on a walk jumps straight to the right place.
+              Tip: you can open the debug box with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>D</kbd>.
             </p>
           </div>
 
@@ -119,14 +119,14 @@
       <section class="view" id="view-profile">
         <div class="section-header">
           <h2>Your profile</h2>
-          <p>Owners, walkers — or both. This controls which emails you get.</p>
+          <p>Roles determine what emails you get (walk requests vs walk offers).</p>
         </div>
         <form class="card form" id="form-profile">
           <div class="form-grid">
             <div class="form-field">
               <label>Email</label>
               <input type="email" id="profile-email" readonly />
-              <p class="field-hint">Email is your login — no password needed.</p>
+              <p class="field-hint">Email is your login. No password is stored.</p>
             </div>
             <div class="form-field">
               <label for="profile-name">Name</label>
@@ -144,7 +144,7 @@
               <label for="profile-address">Address (optional)</label>
               <input type="text" id="profile-address" />
               <p class="field-hint">
-                Used only to generate a Google Maps link — shared after acceptance.
+                Used to generate a Google Maps link. Shared only after a walk is accepted.
               </p>
             </div>
             <div class="form-field">
@@ -153,7 +153,7 @@
                 <option value="">Select…</option>
                 <option value="owner">Owner</option>
                 <option value="walker">Walker</option>
-                <option value="owner, walker">Owner &amp; Walker</option>
+                <option value="owner, walker">Owner &amp; walker</option>
               </select>
             </div>
             <div class="form-field">
@@ -176,7 +176,7 @@
       <section class="view" id="view-post">
         <div class="section-header">
           <h2>Post a walk</h2>
-          <p>Walk start must be within 4 hours from now. Accept/counter/bid closes 30 minutes before start.</p>
+          <p>Walk start must be within 4 hours from now. Bidding/accept closes 30 minutes before start.</p>
         </div>
         <form class="card form" id="form-post">
           <div class="form-grid">
@@ -190,7 +190,7 @@
             </div>
             <div class="form-field">
               <label for="post-temperament">Temperament</label>
-              <input type="text" id="post-temperament" placeholder="Shy, confident, pulls on leash…" />
+              <input type="text" id="post-temperament" placeholder="Shy, pulls on leash, etc." />
             </div>
 
             <div class="form-field">
@@ -201,7 +201,7 @@
               <label for="post-address">Exact address</label>
               <input type="text" id="post-address" />
               <p class="field-hint">
-                Kept private. Walkers only see city-level map before acceptance.
+                Walkers see only city-level map before acceptance.
               </p>
             </div>
 
@@ -225,7 +225,6 @@
               <label for="post-mode">Mode</label>
               <select id="post-mode">
                 <option value="bidding">Bidding</option>
-                <!-- backend currently uses "bidding" as default mode -->
               </select>
             </div>
 
@@ -249,40 +248,34 @@
         </form>
       </section>
 
-      <!-- Open walks (for walkers) -->
+      <!-- Open walks -->
       <section class="view" id="view-open-jobs">
         <div class="section-header">
           <h2>Open walks</h2>
-          <p>City-based browsing. Exact address appears after acceptance.</p>
+          <p>City-based listing. Exact address appears only after acceptance.</p>
         </div>
-        <div id="open-jobs-list" class="cards-list">
-          <!-- Filled by JS -->
-        </div>
+        <div id="open-jobs-list" class="cards-list"></div>
       </section>
 
-      <!-- Current walks (assigned) -->
+      <!-- Current walks -->
       <section class="view" id="view-current">
         <div class="section-header">
           <h2>Current walk</h2>
-          <p>Assigned walks where you’re either owner or walker.</p>
+          <p>Assigned walks where you are owner or walker.</p>
         </div>
-        <div id="current-list" class="cards-list">
-          <!-- Filled by JS -->
-        </div>
+        <div id="current-list" class="cards-list"></div>
       </section>
 
       <!-- My bids -->
       <section class="view" id="view-my-bids">
         <div class="section-header">
           <h2>My bids</h2>
-          <p>Track your offers, counters, and accepted walks.</p>
+          <p>Track your bids, counters, and accepted walks.</p>
         </div>
-        <div id="my-bids-list" class="cards-list">
-          <!-- Filled by JS -->
-        </div>
+        <div id="my-bids-list" class="cards-list"></div>
       </section>
 
-      <!-- Owner job manage view (bids) -->
+      <!-- Owner job view (manage bids) -->
       <section class="view" id="view-owner-job">
         <div class="section-header">
           <button class="btn btn-small btn-ghost" id="btn-owner-job-back">← Back</button>
@@ -290,30 +283,28 @@
           <p id="owner-job-sub"></p>
         </div>
         <div class="layout-split">
-          <div class="card" id="owner-job-meta">
-            <!-- Filled by JS -->
-          </div>
+          <div class="card" id="owner-job-meta"></div>
           <div class="card">
             <h3>Bids</h3>
-            <div id="owner-job-bids">
-              <!-- Filled by JS -->
-            </div>
+            <div id="owner-job-bids"></div>
           </div>
         </div>
       </section>
 
     </main>
 
-    <!-- Toast notifications -->
+    <!-- Toast -->
     <div id="toast" class="toast hidden"></div>
 
     <!-- Login modal -->
     <div class="modal-backdrop hidden" id="login-modal">
       <div class="modal">
         <button class="modal-close" id="login-close">&times;</button>
+
+        <!-- Step 1: email -->
         <div id="login-step-email">
           <h2>Sign in</h2>
-          <p>We send a 6-digit code to your email. No passwords.</p>
+          <p>We send a 6-digit code to your email. No password.</p>
           <form id="form-login-email" class="form">
             <div class="form-field">
               <label for="login-email">Email</label>
@@ -325,6 +316,8 @@
             </div>
           </form>
         </div>
+
+        <!-- Step 2: code -->
         <div id="login-step-code" class="hidden">
           <h2>Enter code</h2>
           <p>Check your inbox. For testing, <code>555555</code> always works.</p>
@@ -343,7 +336,7 @@
       </div>
     </div>
 
-    <!-- Debug: last server response (toggle with Ctrl/Cmd + D) -->
+    <!-- Debug panel -->
     <aside class="debug-panel" id="debug-panel">
       <div class="debug-header">
         <span>Last server response</span>
@@ -353,7 +346,7 @@
     </aside>
 
     <footer class="footer">
-      <span>© igo · built for quiet, trustworthy dog walks.</span>
+      <span>© igo · matching owners & walkers.</span>
       <span>No insurance. igo is only a matching hub.</span>
     </footer>
   </div>
