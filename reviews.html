@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>igo – Reviews</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Reuse your main CSS file name here -->
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      background: radial-gradient(circle at top, #111827 0, #020617 55%);
+      color: #f9fafb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      margin: 0;
+      padding: 1.25rem;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.6rem;
+    }
+    .sub {
+      margin: 0 0 1.25rem;
+      font-size: 0.95rem;
+      color: #9ca3af;
+    }
+    .card {
+      background: rgba(15,23,42,0.96);
+      border-radius: 18px;
+      padding: 1rem 1.1rem 1.15rem;
+      border: 1px solid rgba(148,163,184,0.22);
+      box-shadow: 0 18px 40px rgba(15,23,42,0.8);
+      margin-bottom: 0.9rem;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: flex-start;
+      margin-bottom: 0.3rem;
+    }
+    .job-title {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.2rem;
+    }
+    .job-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+    .job-meta span {
+      opacity: 0.9;
+    }
+    .badge {
+      border-radius: 999px;
+      padding: 0.1rem 0.55rem;
+      font-size: 0.7rem;
+      border: 1px solid rgba(34,197,94,0.4);
+      color: #bbf7d0;
+      background: rgba(22,163,74,0.18);
+      white-space: nowrap;
+    }
+    .small-label {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-top: 0.25rem;
+    }
+    .rating-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin: 0.45rem 0;
+    }
+    select, textarea {
+      background: rgba(15,23,42,0.95);
+      border-radius: 11px;
+      border: 1px solid rgba(148,163,184,0.4);
+      color: #f9fafb;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.85rem;
+      width: 100%;
+      box-sizing: border-box;
+      outline: none;
+    }
+    select:focus, textarea:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.4);
+    }
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 0.38rem 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg,#2563eb,#4f46e5);
+      color: white;
+      box-shadow: 0 10px 25px rgba(37,99,235,0.5);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(37,99,235,0.55);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: #9ca3af;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.3rem;
+    }
+    .chip {
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.4);
+      padding: 0.1rem 0.55rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 1.2rem 0 0.15rem;
+    }
+    .empty {
+      font-size: 0.85rem;
+      color: #6b7280;
+      padding: 0.5rem 0;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 1rem;
+      transform: translateX(-50%) translateY(120%);
+      background: rgba(15,23,42,0.98);
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.82rem;
+      color: #e5e7eb;
+      border: 1px solid rgba(148,163,184,0.5);
+      box-shadow: 0 14px 35px rgba(15,23,42,0.9);
+      opacity: 0;
+      transition: transform 0.22s ease, opacity 0.22s ease;
+      z-index: 50;
+      white-space: nowrap;
+      max-width: 90vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error {
+      border-color: rgba(239,68,68,0.7);
+      color: #fecaca;
+    }
+    @media (min-width: 640px) {
+      body { padding: 1.75rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header style="display:flex;justify-content:space-between;gap:0.75rem;align-items:center;margin-bottom:0.75rem;">
+      <div>
+        <h1>Reviews</h1>
+        <p class="sub" id="subtitle">Rate your walks as an owner or walker.</p>
+      </div>
+      <button class="btn btn-ghost" onclick="window.location.href='index.html';">← Back to app</button>
+    </header>
+
+    <section id="needs-review-section">
+      <div class="section-title">Walks to review</div>
+      <div id="needs-review-list" class="empty">Loading…</div>
+    </section>
+
+    <section id="received-section">
+      <div class="section-title" style="margin-top:1.6rem;">What others said about you</div>
+      <div id="received-list" class="empty">Loading…</div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // 🔧 Set this to the same Apps Script URL you use in app.js
+    const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+    function showToast(msg, opts = {}) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("error", "show");
+      if (opts.error) el.classList.add("error");
+      requestAnimationFrame(() => {
+        el.classList.add("show");
+        setTimeout(() => {
+          el.classList.remove("show");
+        }, 2400);
+      });
+    }
+
+    async function api(action, data = {}) {
+      const payload = JSON.stringify({ action, ...data });
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "payload=" + encodeURIComponent(payload)
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        throw new Error(json.error || "Server error");
+      }
+      return json;
+    }
+
+    function formatWhen(job) {
+      let dateText = "";
+      if (job.date) {
+        const d = new Date(job.date);
+        if (!Number.isNaN(d.getTime())) {
+          dateText = d.toLocaleDateString(undefined, {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+          });
+        } else {
+          dateText = job.date;
+        }
+      }
+      let timeText = "";
+      if (job.time) {
+        const t = new Date(job.time);
+        if (!Number.isNaN(t.getTime())) {
+          const hh = String(t.getHours()).padStart(2, "0");
+          const mm = String(t.getMinutes()).padStart(2, "0");
+          timeText = hh + ":" + mm;
+        } else {
+          timeText = job.time;
+        }
+      }
+      return [dateText, timeText].filter(Boolean).join(" · ");
+    }
+
+    function jobTitle(job) {
+      const dog = job.dog_name || "Dog";
+      const city = job.city || "";
+      return [dog, city].filter(Boolean).join(" · ") || "Walk";
+    }
+
+    function createNeedsReviewCard(job, myEmail, hasReviewAlready) {
+      const me = (myEmail || "").toLowerCase();
+      const owner = String(job.owner_email || "").toLowerCase();
+      const walker = String(job.assigned_walker_email || "").toLowerCase();
+      const role = me === owner ? "owner" : "walker";
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.jobId = job.job_id;
+
+      const when = formatWhen(job);
+      const code = job.job_code ? ("#" + job.job_code) : "";
+
+      card.innerHTML = `
+        <div class="card-header">
+          <div>
+            <div class="job-title">${jobTitle(job)}</div>
+            <div class="job-meta">
+              ${code ? `<span>${code}</span>` : ""}
+              ${when ? `<span>${when}</span>` : ""}
+              ${job.duration ? `<span>${job.duration} min</span>` : ""}
+              ${job.city ? `<span>${job.city}</span>` : ""}
+            </div>
+            <div class="chips">
+              <span class="chip">${role === "owner" ? "You were the owner" : "You were the walker"}</span>
+              <span class="chip">Status: ${job.status}</span>
+            </div>
+          </div>
+          <span class="badge">${hasReviewAlready ? "Already rated" : "Waiting for your rating"}</span>
+        </div>
+        <p class="small-label">
+          Rate your experience with the ${role === "owner" ? "walker" : "owner"}.
+        </p>
+        <div class="rating-row">
+          <label style="font-size:0.82rem;">Rating&nbsp;</label>
+          <select name="rating">
+            <option value="">Select…</option>
+            <option value="5">5 – Amazing</option>
+            <option value="4">4 – Good</option>
+            <option value="3">3 – Okay</option>
+            <option value="2">2 – Not great</option>
+            <option value="1">1 – Bad</option>
+          </select>
+        </div>
+        <div style="margin-bottom:0.4rem;">
+          <textarea name="comment" maxlength="1000" placeholder="Short comment (optional)"></textarea>
+        </div>
+        <button class="btn btn-primary" type="button">Send review</button>
+      `;
+
+      const btn = card.querySelector("button");
+      const ratingSelect = card.querySelector('select[name="rating"]');
+      const commentArea = card.querySelector('textarea[name="comment"]');
+
+      if (hasReviewAlready) {
+        ratingSelect.disabled = true;
+        commentArea.disabled = true;
+        btn.disabled = true;
+        btn.textContent = "Review sent";
+      }
+
+      btn.addEventListener("click", async () => {
+        if (btn.disabled) return;
+        const ratingValue = ratingSelect.value;
+        const comment = (commentArea.value || "").trim();
+        if (!ratingValue) {
+          showToast("Pick a rating first.", { error: true });
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "Sending…";
+        try {
+          const token = localStorage.getItem("igoToken");
+          await api("submit_review", {
+            token,
+            job_id: job.job_id,
+            review: {
+              rating: Number(ratingValue),
+              comment
+            }
+          });
+          showToast("Review saved ✔️");
+          ratingSelect.disabled = true;
+          commentArea.disabled = true;
+          btn.textContent = "Review sent";
+          const badge = card.querySelector(".badge");
+          if (badge) badge.textContent = "Already rated";
+        } catch (err) {
+          console.error(err);
+          showToast(err.message || "Could not send review.", { error: true });
+          btn.disabled = false;
+          btn.textContent = "Send review";
+        }
+      });
+
+      return card;
+    }
+
+    function createReceivedCard(r, jobsById) {
+      const job = jobsById[r.job_id];
+      const title = job ? jobTitle(job) : ("Walk " + r.job_id);
+      const when = job ? formatWhen(job) : "";
+      const role = r.from_role === "owner" ? "Owner" : "Walker";
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="card-header">
+          <div>
+            <div class="job-title">${title}</div>
+            <div class="job-meta">
+              ${when ? `<span>${when}</span>` : ""}
+              <span>From: ${role}</span>
+            </div>
+          </div>
+          <span class="badge">${"★".repeat(Number(r.rating) || 0)}</span>
+        </div>
+        <p class="small-label">${r.comment ? r.comment : "No comment left."}</p>
+      `;
+      return card;
+    }
+
+    async function loadReviewsPage() {
+      const token = localStorage.getItem("igoToken");
+      if (!token) {
+        document.getElementById("needs-review-list").innerHTML =
+          `<div class="empty">You need to sign in from the main app first.</div>`;
+        document.getElementById("received-list").innerHTML = "";
+        return;
+      }
+
+      try {
+        const [{ profile }, currentRes, pastRes, myReviews] = await Promise.all([
+          api("get_profile", { token }),
+          api("current_walks", { token }),
+          api("past_walks", { token }),
+          api("list_my_reviews", { token })
+        ]);
+
+        const subtitle = document.getElementById("subtitle");
+        if (profile && (profile.name || profile.email)) {
+          subtitle.textContent = `Hi ${profile.name || profile.email}, review your walks below.`;
+        }
+
+        const me = (profile.email || "").toLowerCase();
+        const jobs = [...(currentRes.jobs || []), ...(pastRes.jobs || [])];
+
+        // dedupe jobs by job_id
+        const jobsById = {};
+        jobs.forEach(j => { jobsById[j.job_id] = j; });
+
+        const given = myReviews.given || [];
+        const givenByJob = {};
+        given.forEach(r => { givenByJob[r.job_id] = r; });
+
+        const needsReviewList = document.getElementById("needs-review-list");
+        needsReviewList.innerHTML = "";
+        const jobEntries = Object.values(jobsById);
+
+        if (!jobEntries.length) {
+          needsReviewList.innerHTML = `<div class="empty">No walks yet. Do your first walk to leave a review.</div>`;
+        } else {
+          jobEntries.forEach(job => {
+            const hasReview = !!givenByJob[job.job_id];
+            const card = createNeedsReviewCard(job, me, hasReview);
+            needsReviewList.appendChild(card);
+          });
+        }
+
+        // received reviews
+        const receivedList = document.getElementById("received-list");
+        receivedList.innerHTML = "";
+        const received = myReviews.received || [];
+        if (!received.length) {
+          receivedList.innerHTML = `<div class="empty">No reviews yet – they will appear here after your walks.</div>`;
+        } else {
+          received.forEach(r => {
+            const card = createReceivedCard(r, jobsById);
+            receivedList.appendChild(card);
+          });
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("needs-review-list").innerHTML =
+          `<div class="empty">Could not load reviews. Check your connection.</div>`;
+        document.getElementById("received-list").innerHTML = "";
+        showToast("Error talking to server.", { error: true });
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadReviewsPage);
+  </script>
+</body>
+</html>
