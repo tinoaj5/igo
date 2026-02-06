@@ -1,8 +1,8 @@
-<!-- modals.html — igo modals mount -->
+<!-- modals.html — igo modals mount (FIXED: no nested forms) -->
 
 <!-- SIGN IN -->
 <dialog id="signinModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title">Sign in</div>
@@ -38,12 +38,12 @@
         </div>
       </form>
     </div>
-  </form>
+  </div>
 </dialog>
 
 <!-- PROFILE -->
 <dialog id="profileModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title">Profile</div>
@@ -116,12 +116,12 @@
         </div>
       </form>
     </div>
-  </form>
+  </div>
 </dialog>
 
 <!-- POST WALK (OWNER) -->
 <dialog id="ownerModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title">Post a walk</div>
@@ -216,12 +216,12 @@
         </div>
       </form>
     </div>
-  </form>
+  </div>
 </dialog>
 
 <!-- OPEN JOBS (WALKER) -->
 <dialog id="jobsModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title">Open walks</div>
@@ -234,12 +234,12 @@
       <div id="jobsEmpty" class="muted" style="display:none;">No open walks right now.</div>
       <div id="jobsList"></div>
     </div>
-  </form>
+  </div>
 </dialog>
 
 <!-- OWNER JOBS -->
 <dialog id="ownerJobsModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title">My walks</div>
@@ -252,12 +252,12 @@
       <div id="ownerJobsEmpty" class="muted" style="display:none;">No walks posted yet.</div>
       <div id="ownerJobsList"></div>
     </div>
-  </form>
+  </div>
 </dialog>
 
 <!-- MY BIDS -->
 <dialog id="myBidsModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title">My bids</div>
@@ -270,12 +270,12 @@
       <div id="myBidsEmpty" class="muted" style="display:none;">No bids yet.</div>
       <div id="myBidsList"></div>
     </div>
-  </form>
+  </div>
 </dialog>
 
 <!-- CURRENT WALKS -->
 <dialog id="currentWalksModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title">Current walks</div>
@@ -288,12 +288,12 @@
       <div id="currentWalksEmpty" class="muted" style="display:none;">No current walks.</div>
       <div id="currentWalksList"></div>
     </div>
-  </form>
+  </div>
 </dialog>
 
 <!-- CHAT -->
 <dialog id="chatModal" class="modal">
-  <form method="dialog" class="modal-shell" onsubmit="return false;">
+  <div class="modal-shell">
     <div class="modal-head">
       <div>
         <div class="modal-title" id="chatHeader">Chat</div>
@@ -315,5 +315,5 @@
         </div>
       </form>
     </div>
-  </form>
+  </div>
 </dialog>
