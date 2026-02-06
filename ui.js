@@ -1,22 +1,23 @@
-/* ui.js — Option A (modals.html injected, then ui.js)
-   Updates:
-   - NEVER show emails (privacy)
-   - Use job_label everywhere instead of raw job_id
-   - Friendly date/time formatting
-   - Add Google Maps buttons:
-     - Open jobs: "Area map" (city-only)
-     - Current/assigned: "Directions" (exact)
-   - Ensure buttons do not lead to same place incorrectly
+/* ui.js — UPDATED (privacy + user-friendly dates + better labels + directions)
+   Key changes:
+   - No longer shows owner/walker emails in Current Walks
+   - Formats date/time nicely (fixes ISO + weird 1899 time objects)
+   - Uses a readable “walk label” everywhere instead of raw job_id when possible
+   - Adds a “Directions” button (Google Maps) for CURRENT walks (assigned)
+   - Keeps buttons distinct (Open current ≠ Chat; no duplicate destinations)
 */
 
 (function () {
+  // prevent double boot if ui.js gets loaded twice by mistake
   if (window.__IGO_UI_BOOTED__) return;
   window.__IGO_UI_BOOTED__ = true;
 
   let CURRENT_CHAT_JOB_ID = null;
-  let CURRENT_CHAT_JOB_LABEL = null;
 
-  /* ============ helpers ============ */
+  // cache job summaries so My bids / Chat can show human-friendly labels
+  const JOB_CACHE = new Map(); // job_id -> job object
+
+  /* ============ small helpers ============ */
   const esc = (s) =>
     String(s ?? "").replace(/[&<>"']/g, (m) => ({
       "&": "&amp;",
@@ -30,20 +31,6 @@
     const n = Number(x);
     return Number.isFinite(n) ? `${n.toFixed(0)} CHF` : (x ? `${x} CHF` : "");
   };
-
-  function fmtWhen(dateStr, timeStr) {
-    // dateStr: yyyy-mm-dd, timeStr: HH:MM
-    const d = String(dateStr || "").trim();
-    const t = String(timeStr || "").trim();
-    if (!d) return t || "";
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return `${d} ${t}`.trim();
-
-    const [y,m,dd] = d.split("-").map(Number);
-    const dt = new Date(y, m-1, dd);
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const label = `${String(dd).padStart(2,"0")} ${months[dt.getMonth()]}`;
-    return `${label}${t ? " · " + t : ""}`.trim();
-  }
 
   function showToast(msg) {
     const t = document.getElementById("toast");
@@ -97,6 +84,99 @@
     } catch (_) {}
   }
 
+  /* ============ date/time formatting (fixes ISO + Sheets date objects) ============ */
+  function toDateSafe(v) {
+    if (!v) return null;
+    if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+
+    // sometimes Apps Script returns {…} or numbers; string-ify then parse
+    const s = String(v);
+    // ISO?
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d;
+
+    return null;
+  }
+
+  function fmtDate(v) {
+    // prefer “Thu 5 Feb” style
+    const d = toDateSafe(v);
+    if (!d) {
+      // maybe already "YYYY-MM-DD"
+      const s = String(v || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      return s;
+    }
+    return d.toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  function fmtTime(v) {
+    const d = toDateSafe(v);
+    if (d) {
+      // time-only Date objects often come back as 1899/1900 + time; keep only HH:MM
+      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    }
+    const s = String(v || "").trim();
+    // already "HH:MM"
+    if (/^\d{1,2}:\d{2}/.test(s)) return s;
+    return s;
+  }
+
+  function fmtWhen(job) {
+    const ds = fmtDate(job?.date);
+    const ts = fmtTime(job?.time);
+    const when = `${ds} ${ts}`.trim();
+    return when || "";
+  }
+
+  function shortId(jobId) {
+    const s = String(jobId || "");
+    if (!s) return "";
+    // job_xxxxx -> show last 6
+    const tail = s.replace(/^job_/, "");
+    return tail.length > 8 ? tail.slice(0, 8) : tail;
+  }
+
+  function jobLabel(jobOrId) {
+    // If we have the job object, build a nice label.
+    const job = typeof jobOrId === "string" ? (JOB_CACHE.get(jobOrId) || null) : jobOrId;
+    if (job) {
+      const dog = job.dog_name || "Dog";
+      const city = job.city || "";
+      const when = fmtWhen(job);
+      // job_code is best if present
+      const code = job.job_code ? `#${job.job_code}` : `#${shortId(job.job_id)}`;
+      return `${dog} • ${city}${when ? " • " + when : ""} ${code ? " · " + code : ""}`.trim();
+    }
+    // fallback: compact id
+    return `Walk #${shortId(jobOrId) || String(jobOrId || "")}`;
+  }
+
+  function cacheJobs(list) {
+    (list || []).forEach((j) => {
+      if (j && j.job_id) JOB_CACHE.set(String(j.job_id), j);
+    });
+  }
+
+  /* ============ maps helpers ============ */
+  function buildMapsLink(address, city) {
+    const q = [address, city].filter(Boolean).join(", ");
+    if (!q) return null;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+  }
+
+  window.openDirections = function (jobId) {
+    const j = JOB_CACHE.get(String(jobId));
+    const url = buildMapsLink(j?.address, j?.city);
+    if (!url) return showToast("No address available yet.");
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   /* expose open/close used by onclick */
   window.openSignin = () => openDlg("signinModal");
   window.closeSignin = () => closeDlg("signinModal");
@@ -141,7 +221,6 @@
   window.closeChat = () => {
     closeDlg("chatModal");
     CURRENT_CHAT_JOB_ID = null;
-    CURRENT_CHAT_JOB_LABEL = null;
   };
 
   /* dashboard switching */
@@ -184,7 +263,7 @@
     showSignedInUI();
 
     const { isOwner, isWalker } = computeRoleFlags(prof);
-    const name = prof.name || "Account";
+    const name = prof.name || prof.email || "Account";
 
     const parts = [];
     parts.push(`<span class="user-chip-name">${esc(name)}</span>`);
@@ -207,6 +286,7 @@
 
   /* ============ events ============ */
   function wireEvents() {
+    // SIGN IN — critical to prevent refresh
     document.getElementById("signinBtn")?.addEventListener("click", () => openDlg("signinModal"));
 
     document.getElementById("signinForm")?.addEventListener("submit", async (e) => {
@@ -258,7 +338,7 @@
 
       if (res && res.ok && res.token) {
         setToken(res.token);
-        setProfile(res.profile || {}); // backend returns public profile (no email)
+        setProfile(res.profile || { email });
         showToast("Signed in");
         renderAuthUI();
         closeDlg("signinModal");
@@ -353,21 +433,13 @@
     if (!form) return;
 
     const map = (k) => form.querySelector(`[name="${k}"]`);
-    ["name", "phone", "address", "city", "pay_method", "bio", "role"].forEach((k) => {
+    ["name", "email", "phone", "address", "city", "pay_method", "bio", "role"].forEach((k) => {
       if (map(k) && prof[k]) map(k).value = prof[k];
     });
 
     const { isOwner, isWalker } = computeRoleFlags(prof);
     if (form.elements["is_owner"]) form.elements["is_owner"].checked = isOwner;
     if (form.elements["is_walker"]) form.elements["is_walker"].checked = isWalker;
-
-    // show maps preview if present
-    const m = document.getElementById("profileMapsHint");
-    if (m) {
-      const cityMap = prof.maps_search ? `<a href="${esc(prof.maps_search)}" target="_blank" rel="noopener">City map</a>` : "";
-      const dirMap = prof.maps_directions ? `<a href="${esc(prof.maps_directions)}" target="_blank" rel="noopener">Directions</a>` : "";
-      m.innerHTML = (cityMap || dirMap) ? `Maps links: ${cityMap}${(cityMap && dirMap) ? " · " : ""}${dirMap}` : "";
-    }
   }
 
   function prefillOwnerFromProfile() {
@@ -375,6 +447,7 @@
     const form = document.getElementById("ownerForm");
     if (!form) return;
     if (prof.name) form.elements["name"].value = prof.name;
+    if (prof.email) form.elements["email"].value = prof.email;
     if (prof.phone) form.elements["phone"].value = prof.phone;
     if (prof.city) form.elements["city"].value = prof.city;
     if (prof.address) form.elements["address"].value = prof.address;
@@ -396,7 +469,7 @@
     const dashTitle = document.getElementById("dashTitle");
     const dashSub = document.getElementById("dashSub");
 
-    if (dashTitle) dashTitle.textContent = `Welcome, ${prof.name || "there"}.`;
+    if (dashTitle) dashTitle.textContent = `Welcome, ${prof.name || prof.email || "there"}.`;
     if (dashSub) {
       dashSub.textContent =
         isOwner && isWalker ? "Owner + Walker mode enabled. Pick what you want to do now." :
@@ -427,6 +500,8 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
+    cacheJobs(jobs);
+
     const body = document.getElementById("ownerLatestBody");
     const btn = document.getElementById("ownerLatestBidsBtn");
     if (!body || !btn) return;
@@ -440,9 +515,9 @@
 
     const j = jobs[0];
     body.innerHTML = `
-      <div style="font-weight:800;">${esc(j.job_label || "")}</div>
+      <div style="font-weight:800;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
       <div class="muted" style="font-size:12px;margin-top:4px;">
-        ${esc(fmtWhen(j.date, j.time))} • ${esc(j.duration || "")} min • status: ${esc(j.status || "")}
+        ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min • status: ${esc(j.status || "")}
       </div>
       ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
     `;
@@ -463,23 +538,29 @@
     const actions = document.getElementById("walkerPanelActions");
     if (!body || !actions) return;
 
+    // current walk first
     const cw = await postForm({ action: "current_walks", token });
     const current = (cw.jobs || [])[0];
+    cacheJobs(cw.jobs || []);
+
     if (current) {
       body.innerHTML = `
-        <div style="font-weight:800;">Current walk</div>
-        <div class="muted" style="font-size:12px;margin-top:4px;">${esc(current.job_label || "")}</div>
+        <div style="font-weight:800;">Current walk: ${esc(current.dog_name || "Dog")} • ${esc(current.city || "")}</div>
         <div class="muted" style="font-size:12px;margin-top:4px;">
-          ${esc(fmtWhen(current.date, current.time))} • ${esc(current.duration || "")} min
+          ${esc(fmtWhen(current))} • ${esc(current.duration || "")} min
         </div>
+        ${current.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(current.notes)}</div>` : ``}
       `;
+
       actions.innerHTML = `
         <button class="btn btn-outline btn-small" type="button" onclick="openCurrentWalks()">Open current</button>
-        <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(current.job_id)}','${esc(current.job_label || "")}')">Chat</button>
+        <button class="btn btn-outline btn-small" type="button" onclick="openDirections('${esc(current.job_id)}')">Directions</button>
+        <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(current.job_id)}')">Chat</button>
       `;
       return;
     }
 
+    // latest bid
     const mb = await postForm({ action: "my_bids", token });
     const bids = mb.bids || [];
     const b = bids[0];
@@ -495,7 +576,7 @@
 
     body.innerHTML = `
       <div style="font-weight:800;">Latest bid</div>
-      <div class="muted" style="font-size:12px;margin-top:4px;">${esc(b.job_label || b.job_id)}</div>
+      <div class="muted" style="font-size:12px;margin-top:4px;">${esc(jobLabel(b.job_id))}</div>
       <div class="muted" style="font-size:12px;margin-top:4px;">
         Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b> ${counterLine}
       </div>
@@ -528,6 +609,8 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
+    cacheJobs(jobs);
+
     if (!jobs.length) {
       if (empty) empty.style.display = "block";
       return;
@@ -538,14 +621,11 @@
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(j.job_label || "")}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(fmtWhen(j.date, j.time))} • ${esc(j.duration || "")} min • max ${money(j.max_price)}
+                ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min • max ${money(j.max_price)}
               </div>
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
-              ${j.area_map ? `<div class="muted" style="margin-top:8px;font-size:12px;">
-                <a href="${esc(j.area_map)}" target="_blank" rel="noopener">🗺 Area map (approx)</a>
-              </div>` : ``}
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               <button class="btn btn-primary btn-small" onclick="openBidSheet('${esc(j.job_id)}','${esc(j.max_price || "")}')">Bid</button>
@@ -589,6 +669,8 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
+    cacheJobs(jobs);
+
     if (!jobs.length) {
       if (empty) empty.style.display = "block";
       return;
@@ -599,20 +681,16 @@
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;font-size:16px;">${esc(j.job_label || "")}</div>
+              <div style="font-weight:900;font-size:16px;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(fmtWhen(j.date, j.time))} • ${esc(j.duration || "")} min • status: <b>${esc(j.status || "")}</b>
+                ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min • status: <b>${esc(j.status || "")}</b>
               </div>
               ${j.notes ? `<div class="muted" style="margin-top:8px;font-size:12px;">${esc(j.notes)}</div>` : ``}
-              ${j.area_map ? `<div class="muted" style="margin-top:8px;font-size:12px;">
-                <a href="${esc(j.area_map)}" target="_blank" rel="noopener">🗺 Area map</a>
-                ${j.directions ? ` · <a href="${esc(j.directions)}" target="_blank" rel="noopener">🧭 Directions</a>` : ``}
-              </div>` : ``}
             </div>
 
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               <button class="btn btn-outline btn-small" type="button" onclick="toggleBids('${esc(j.job_id)}')">Show bids</button>
-              <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(j.job_id)}','${esc(j.job_label || "")}')">Chat</button>
+              <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(j.job_id)}')">Chat</button>
             </div>
           </div>
 
@@ -646,76 +724,72 @@
     }
 
     const bids = res.bids || [];
-    const jobLabel = res.job_label || "";
-
     if (!bids.length) {
       wrap.innerHTML = `<div class="muted" style="font-size:12px;">No bids yet.</div>`;
       return;
     }
 
-    wrap.innerHTML = `
-      <div class="muted" style="font-size:12px;margin-bottom:8px;">Bids for: <b>${esc(jobLabel)}</b></div>
-      ${bids.map((b) => {
-        const initials = (b.walker_name || "W").trim().slice(0, 1).toUpperCase();
-        const status = String(b.status || "").toLowerCase();
-        const counterInfo = b.counter_amount
-          ? `<div class="muted" style="font-size:12px;margin-top:4px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
-          : "";
+    wrap.innerHTML = bids.map((b) => {
+      const initials = (b.walker_name || b.walker_email || "W").trim().slice(0, 1).toUpperCase();
+      const status = String(b.status || "").toLowerCase();
+      const counterInfo = b.counter_amount
+        ? `<div class="muted" style="font-size:12px;margin-top:4px;">Counter proposed: <b>${money(b.counter_amount)}</b></div>`
+        : "";
 
-        return `
-          <div class="card" style="margin-top:10px;">
-            <div class="card-inner">
-              <div style="display:flex;gap:12px;align-items:flex-start;">
-                <div style="width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.12);font-weight:900;">
-                  ${esc(initials)}
+      // Privacy: do NOT show walker email here (only name + city)
+      return `
+        <div class="card" style="margin-top:10px;">
+          <div class="card-inner">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.12);font-weight:900;">
+                ${esc(initials)}
+              </div>
+
+              <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+                  <div>
+                    <div style="font-weight:900;">${esc(b.walker_name || "WALKER")}</div>
+                    <div class="muted" style="font-size:12px;">
+                      ${esc(b.walker_city || "")}
+                    </div>
+                  </div>
+                  <div style="font-weight:900;font-size:16px;">${money(b.amount)}</div>
                 </div>
 
-                <div style="flex:1;">
-                  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
-                    <div>
-                      <div style="font-weight:900;">${esc(b.walker_name || "WALKER")}</div>
-                      <div class="muted" style="font-size:12px;">
-                        ${esc(b.walker_city || "")}
-                      </div>
-                    </div>
-                    <div style="font-weight:900;font-size:16px;">${money(b.amount)}</div>
-                  </div>
+                <div class="muted" style="font-size:12px;margin-top:6px;">Status: <b>${esc(b.status)}</b></div>
+                ${counterInfo}
 
-                  <div class="muted" style="font-size:12px;margin-top:6px;">Status: <b>${esc(b.status)}</b></div>
-                  ${counterInfo}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                  <button class="btn btn-primary btn-small" type="button"
+                    ${status === "accepted" ? "disabled" : ""}
+                    onclick="acceptBidUI('${esc(jobId)}','${esc(b.bid_id)}')">Accept</button>
 
-                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                  <button class="btn btn-outline btn-small" type="button"
+                    ${status === "accepted" ? "disabled" : ""}
+                    onclick="toggleCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Counter</button>
+
+                  <button class="btn btn-outline btn-small" type="button"
+                    onclick="openChat('${esc(jobId)}')">Chat</button>
+                </div>
+
+                <div id="counterBox_${esc(b.bid_id)}" style="display:none;margin-top:10px;">
+                  <div class="muted" style="font-size:12px;margin-bottom:6px;">Counter offer (CHF)</div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <input id="counterVal_${esc(b.bid_id)}" type="number" min="1" step="1" placeholder="e.g. 30"
+                      style="flex:1;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
                     <button class="btn btn-primary btn-small" type="button"
-                      ${status === "accepted" ? "disabled" : ""}
-                      onclick="acceptBidUI('${esc(jobId)}','${esc(b.bid_id)}')">Accept</button>
-
-                    <button class="btn btn-outline btn-small" type="button"
-                      ${status === "accepted" ? "disabled" : ""}
-                      onclick="toggleCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Counter</button>
-
-                    <button class="btn btn-outline btn-small" type="button"
-                      onclick="openChat('${esc(jobId)}','${esc(jobLabel)}')">Chat</button>
+                      onclick="confirmCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Yes, counter</button>
+                    <button class="btn btn-ghost btn-small" type="button"
+                      onclick="toggleCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">No</button>
                   </div>
-
-                  <div id="counterBox_${esc(b.bid_id)}" style="display:none;margin-top:10px;">
-                    <div class="muted" style="font-size:12px;margin-bottom:6px;">Counter offer (CHF)</div>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                      <input id="counterVal_${esc(b.bid_id)}" type="number" min="1" step="1" placeholder="e.g. 30"
-                        style="flex:1;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:inherit;">
-                      <button class="btn btn-primary btn-small" type="button"
-                        onclick="confirmCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">Yes, counter</button>
-                      <button class="btn btn-ghost btn-small" type="button"
-                        onclick="toggleCounterUI('${esc(jobId)}','${esc(b.bid_id)}')">No</button>
-                    </div>
-                  </div>
-
                 </div>
+
               </div>
             </div>
           </div>
-        `;
-      }).join("")}
-    `;
+        </div>
+      `;
+    }).join("");
   }
 
   window.toggleCounterUI = function (jobId, bidId) {
@@ -751,6 +825,8 @@
     showToast("Accepted");
     await refreshOwnerJobs();
     await refreshOwnerLatestPreview();
+    // also refresh current list so owner sees it move to “Current”
+    await refreshCurrentWalks().catch(() => {});
   };
 
   /* ============ my bids (walker) ============ */
@@ -782,7 +858,7 @@
           <div class="card-inner">
             <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
               <div style="flex:1;">
-                <div style="font-weight:900;">${esc(b.job_label || b.job_id)}</div>
+                <div style="font-weight:900;">${esc(jobLabel(b.job_id))}</div>
                 <div class="muted" style="font-size:12px;margin-top:4px;">
                   Your bid: <b>${money(b.amount)}</b> • status: <b>${esc(b.status)}</b>
                 </div>
@@ -839,39 +915,32 @@
     window.setDebug(res);
 
     const jobs = res.jobs || [];
+    cacheJobs(jobs);
+
     if (!jobs.length) {
       if (empty) empty.style.display = "block";
       await refreshWalkerPanel().catch(() => {});
       return;
     }
 
-    // show mark done button only for owner (simple check: profile has is_owner)
-    const prof = getProfile() || {};
-    const isOwner = (prof.is_owner === "1") || String(prof.role||"").toLowerCase().includes("owner");
-
     list.innerHTML = jobs.map((j) => `
       <div class="card" style="margin-bottom:12px;">
         <div class="card-inner">
           <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
             <div style="flex:1;">
-              <div style="font-weight:900;">${esc(j.job_label || "")}</div>
+              <div style="font-weight:900;">${esc(j.dog_name || "Dog")} • ${esc(j.city || "")}</div>
               <div class="muted" style="font-size:12px;margin-top:4px;">
-                ${esc(fmtWhen(j.date, j.time))} • ${esc(j.duration || "")} min
+                ${esc(fmtWhen(j))} • ${esc(j.duration || "")} min
               </div>
               ${j.notes ? `<div class="muted" style="font-size:12px;margin-top:6px;">${esc(j.notes)}</div>` : ``}
-
-              <div class="muted" style="font-size:12px;margin-top:8px;">
-                ${j.directions ? `<a href="${esc(j.directions)}" target="_blank" rel="noopener">🧭 Directions (exact)</a>` : ``}
-              </div>
-
-              <div class="muted" style="font-size:12px;margin-top:8px;">
-                Owner: <b>${esc(j.owner_name || "Owner")}</b>${j.owner_phone ? ` · ${esc(j.owner_phone)}` : ``}
-                <br/>Walker: <b>${esc(j.walker_name || "Walker")}</b>
+              <div class="muted" style="font-size:11px;margin-top:6px;">
+                ${esc(j.job_code ? `Walk ${j.job_code}` : `Walk ${shortId(j.job_id)}`)}
               </div>
             </div>
+
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-              <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(j.job_id)}','${esc(j.job_label || "")}')">Chat</button>
-              ${isOwner ? `<button class="btn btn-outline btn-small" type="button" onclick="markDoneUI('${esc(j.job_id)}')">Mark done</button>` : ``}
+              <button class="btn btn-outline btn-small" type="button" onclick="openDirections('${esc(j.job_id)}')">Directions</button>
+              <button class="btn btn-primary btn-small" type="button" onclick="openChat('${esc(j.job_id)}')">Chat</button>
             </div>
           </div>
         </div>
@@ -881,24 +950,15 @@
     await refreshWalkerPanel().catch(() => {});
   }
 
-  window.markDoneUI = async function(jobId){
-    if (!confirm("Mark this walk as completed?")) return;
-    const token = getToken();
-    const res = await postForm({ action: "mark_done", token, job_id: jobId });
-    window.setDebug(res);
-    if (!res?.ok) return showToast(res?.error || "Could not mark done");
-    showToast("Marked done");
-    await refreshCurrentWalks();
-    await refreshOwnerJobs().catch(()=>{});
-    await refreshOwnerLatestPreview().catch(()=>{});
-  };
-
   /* ============ chat ============ */
-  window.openChat = async function (jobId, jobLabel) {
+  window.openChat = async function (jobId) {
     CURRENT_CHAT_JOB_ID = jobId;
-    CURRENT_CHAT_JOB_LABEL = jobLabel || "";
+
     const head = document.getElementById("chatHeader");
-    if (head) head.textContent = CURRENT_CHAT_JOB_LABEL ? `Chat · ${CURRENT_CHAT_JOB_LABEL}` : `Chat`;
+    if (head) {
+      head.textContent = `Chat • ${jobLabel(jobId)}`;
+    }
+
     openDlg("chatModal");
     await loadChat();
   };
@@ -938,12 +998,12 @@
 
   /* ============ init ============ */
   function waitForModalsThenInit() {
+    // This ensures all modal DOM exists before attaching listeners
     const ok =
       document.getElementById("signinForm") &&
       document.getElementById("codeForm") &&
       document.getElementById("profileForm") &&
-      document.getElementById("ownerForm") &&
-      document.getElementById("chatForm");
+      document.getElementById("ownerForm");
 
     if (!ok) {
       setTimeout(waitForModalsThenInit, 30);
@@ -965,5 +1025,6 @@
   window.refreshOwnerJobs = refreshOwnerJobs;
   window.refreshMyBids = refreshMyBids;
   window.refreshCurrentWalks = refreshCurrentWalks;
+
   window.renderDash = renderDash;
 })();
