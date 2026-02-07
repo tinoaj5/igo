@@ -1,5 +1,5 @@
 // ====== CONFIG ======
-const API_URL = "https://script.google.com/macros/s/AKfycbzR36SQqZYRavbyTYtkfh3yMCm92znzKgZ7IOCS9MVwEclJvTPMBeDX3GK8Q99Ug48Otw/exec"; // <-- put your Apps Script URL here
+const API_URL = "https://script.google.com/macros/s/AKfycby6JqMSNnX-K6DcAHydCaoZ9sgJxMfhlM1K98b7D9bGCG2qRcVJBBlnnvqFQKJTyyyaOQ/exec"; // <-- put your Apps Script URL here
 
 // ====== GLOBAL STATE ======
 const state = {
