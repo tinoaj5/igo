@@ -2,385 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>igo — Dog walking hub</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
-  <script defer src="app.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IGO-HUB</title>
+
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: '#0B0F14',
+            surface: '#141A22',
+            primary: '#FF6B3D',
+            accent: '#FF9A3D',
+            textMain: '#F3F4F6',
+            textMuted: '#9CA3AF',
+          },
+          boxShadow: {
+            soft: '0 20px 60px rgba(0,0,0,0.45)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background: #0B0F14; }
+  </style>
 </head>
-<body>
-  <div class="app-shell">
-    <!-- Top bar -->
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-dot"></span>
-        <span class="brand-title">igo</span>
-        <span class="brand-tagline">dog walks · local & simple</span>
-      </div>
-      <nav class="top-nav">
-        <button class="nav-btn" data-nav="landing" id="nav-landing">Home</button>
-        <button class="nav-btn nav-auth-only" data-nav="dashboard" id="nav-dashboard">Dashboard</button>
-        <button class="nav-btn nav-auth-only" data-nav="open-jobs" id="nav-open-jobs">Open walks</button>
-        <button class="nav-btn nav-auth-only" data-nav="current" id="nav-current">Current</button>
-        <button class="nav-btn nav-auth-only" data-nav="my-bids" id="nav-my-bids">My bids</button>
-        <button class="nav-btn nav-auth-only" data-nav="profile" id="nav-profile">Profile</button>
-        <button class="nav-btn nav-auth-only nav-btn-secondary" id="btn-logout">Log out</button>
-        <button class="nav-btn nav-guest-only nav-btn-primary" id="btn-open-login">Sign in</button>
-      </nav>
-    </header>
+<body class="bg-background text-textMain min-h-screen">
+  <div id="root"></div>
 
-    <!-- Main content -->
-    <main class="main" id="main">
+  <!-- Your existing backend layer -->
+  <script src="api.js"></script>
+  <script src="auth.js"></script>
 
-      <!-- Landing -->
-      <section class="view active" id="view-landing">
-        <div class="layout-split">
-          <div class="card hero-card">
-            <h1>Safe humans for good dogs, in your city.</h1>
-            <p class="hero-sub">
-              Owners post walks; walkers nearby accept or bid. igo is just the matching brain — you stay in control.
-            </p>
-            <div class="hero-actions">
-              <button class="btn btn-primary" id="btn-landing-signin">✦ Sign in</button>
-              <button class="btn btn-ghost" id="btn-landing-learn">How it works</button>
-            </div>
-            <p class="hero-note">
-              Test login code: <code>555555</code> (always valid).
-            </p>
-          </div>
+  <!-- Backend bridge used by React UI -->
+  <script src="utils/backend.js"></script>
 
-          <div class="card hero-info-card">
-            <h2>How igo works</h2>
-            <ol class="numbered-list">
-              <li>Sign in with your email — we send a 6-digit code, no password.</li>
-              <li>Choose your role: dog owner, walker, or both.</li>
-              <li>Owners post walks with time, city, price, and dog info.</li>
-              <li>Walkers in the same city see the walk and bid or accept.</li>
-              <li>Once a bid is accepted, exact address & chat unlock for owner + walker.</li>
-              <li>After the walk, the owner marks it as done. That’s it.</li>
-            </ol>
+  <!-- Components -->
+  <script type="text/babel" src="components/Header.js"></script>
+  <script type="text/babel" src="components/Footer.js"></script>
+  <script type="text/babel" src="components/HeroSection.js"></script>
+  <script type="text/babel" src="components/FeatureSection.js"></script>
 
-            <h3>Why I built igo</h3>
-            <p class="footnote" style="margin-bottom:0.4rem;">
-              This project started because organising dog walks in chats was messy:
-              wrong times, wrong places, lost messages. I wanted something tiny,
-              honest and practical — no big “platform”, just a clean way to match
-              people who love dogs with people who need help.
-            </p>
-
-            <h3>Our values</h3>
-            <ul class="bullet-list">
-              <li><strong>Local first.</strong> You only see walks in your city, not spam from everywhere.</li>
-              <li><strong>Privacy by default.</strong> Exact address and email are only used when a walk is accepted.</li>
-              <li><strong>Clear rules.</strong> Time windows are strict: post within 4h of start, accept/counter up to 30 min before.</li>
-              <li><strong>Honest money.</strong> Owners see bids clearly; walkers see counters clearly. No hidden fees here.</li>
-              <li><strong>Dogs first.</strong> Everything is built around what is safest & clearest for the dog and the people.</li>
-            </ul>
-            <p class="footnote">
-              igo does not provide insurance or take legal responsibility for the walk.
-              It’s a tiny matching tool you can decide to use with people you trust.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Dashboard -->
-      <section class="view" id="view-dashboard">
-        <div class="section-header">
-          <h2>Your dashboard</h2>
-          <p id="dashboard-subtitle">Welcome back.</p>
-        </div>
-
-        <div class="layout-split">
-          <div class="card">
-            <h3>Quick actions</h3>
-            <div class="quick-actions">
-              <button class="btn btn-primary" id="btn-go-post">Post a walk</button>
-              <button class="btn btn-outline" id="btn-go-open-jobs">Open walks</button>
-              <button class="btn btn-outline" id="btn-go-current">Current</button>
-              <button class="btn btn-outline" id="btn-go-my-bids">My bids</button>
-            </div>
-            <p class="hint">
-              Tip: open the debug box with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>D</kbd> to see raw API responses.
-            </p>
-          </div>
-
-          <div class="card" id="card-latest-owner">
-            <h3>Your latest walk</h3>
-            <div id="latest-owner-content" class="empty-state">
-              <span>– No walks yet. Post your first walk.</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="layout-split">
-          <div class="card" id="card-role-info">
-            <h3>Your roles</h3>
-            <p id="role-label">Loading…</p>
-            <button class="btn btn-small btn-outline" id="btn-go-profile">Edit profile</button>
-          </div>
-
-          <div class="card" id="card-dashboard-current">
-            <h3>Current walk</h3>
-            <div id="dashboard-current-content" class="empty-state">
-              <span>– Nothing active right now.</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- New: explainer box for owner / walker -->
-        <div class="card" id="card-how-dashboard">
-          <h3>How igo works for you</h3>
-          <div class="form-actions" style="margin-bottom:0.4rem;">
-            <button class="btn btn-small btn-primary" id="btn-how-owner">Owner view</button>
-            <button class="btn btn-small btn-outline" id="btn-how-walker">Walker view</button>
-          </div>
-          <div class="small-label" id="how-text">
-            <!-- JS will fill this with the owner/walker explanation -->
-          </div>
-        </div>
-      </section>
-
-      <!-- Profile -->
-      <section class="view" id="view-profile">
-        <div class="section-header">
-          <h2>Your profile</h2>
-          <p>Roles determine what emails you get (walk requests vs walk offers).</p>
-        </div>
-        <form class="card form" id="form-profile">
-          <div class="form-grid">
-            <div class="form-field">
-              <label>Email</label>
-              <input type="email" id="profile-email" readonly />
-              <p class="field-hint">Email is your login. No password is stored.</p>
-            </div>
-            <div class="form-field">
-              <label for="profile-name">Name</label>
-              <input type="text" id="profile-name" required />
-            </div>
-            <div class="form-field">
-              <label for="profile-phone">Phone</label>
-              <input type="tel" id="profile-phone" />
-            </div>
-            <div class="form-field">
-              <label for="profile-city">City</label>
-              <input type="text" id="profile-city" required />
-            </div>
-            <div class="form-field">
-              <label for="profile-address">Address (optional)</label>
-              <input type="text" id="profile-address" />
-              <p class="field-hint">
-                Used to generate a Google Maps link. Shared only after a walk is accepted.
-              </p>
-            </div>
-            <div class="form-field">
-              <label for="profile-role">Role</label>
-              <select id="profile-role">
-                <option value="">Select…</option>
-                <option value="owner">Owner</option>
-                <option value="walker">Walker</option>
-                <option value="owner, walker">Owner &amp; walker</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="profile-pay">Preferred pay method</label>
-              <input type="text" id="profile-pay" placeholder="Twint / cash / bank…" />
-            </div>
-            <div class="form-field form-field-full">
-              <label for="profile-bio">Short bio</label>
-              <textarea id="profile-bio" rows="3" placeholder="A sentence about you & dogs."></textarea>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Save profile</button>
-            <span class="form-status" id="profile-status"></span>
-          </div>
-        </form>
-      </section>
-
-      <!-- Post a walk -->
-      <section class="view" id="view-post">
-        <div class="section-header">
-          <h2>Post a walk</h2>
-          <p>Walk start must be within 4 hours from now. Bidding/accept closes 30 minutes before start.</p>
-        </div>
-        <form class="card form" id="form-post">
-          <div class="form-grid">
-            <div class="form-field">
-              <label for="post-dog-name">Dog name</label>
-              <input type="text" id="post-dog-name" />
-            </div>
-            <div class="form-field">
-              <label for="post-dog-size">Dog size</label>
-              <input type="text" id="post-dog-size" placeholder="Small / medium / large…" />
-            </div>
-            <div class="form-field">
-              <label for="post-temperament">Temperament</label>
-              <input type="text" id="post-temperament" placeholder="Shy, pulls on leash, etc." />
-            </div>
-
-            <div class="form-field">
-              <label for="post-city">City</label>
-              <input type="text" id="post-city" required />
-            </div>
-            <div class="form-field">
-              <label for="post-address">Exact address</label>
-              <input type="text" id="post-address" />
-              <p class="field-hint">
-                Walkers see only city-level map before acceptance.
-              </p>
-            </div>
-
-            <div class="form-field">
-              <label for="post-date">Date</label>
-              <input type="date" id="post-date" required />
-            </div>
-            <div class="form-field">
-              <label for="post-time">Time</label>
-              <input type="time" id="post-time" required />
-            </div>
-            <div class="form-field">
-              <label for="post-duration">Duration (min)</label>
-              <input type="number" id="post-duration" min="10" required />
-            </div>
-            <div class="form-field">
-              <label for="post-max-price">Max price (CHF)</label>
-              <input type="number" id="post-max-price" min="1" />
-            </div>
-            <div class="form-field">
-              <label for="post-mode">Mode</label>
-              <select id="post-mode">
-                <option value="bidding">Bidding</option>
-              </select>
-            </div>
-
-            <div class="form-field form-field-full">
-              <label for="post-notes">Notes for the walker</label>
-              <textarea id="post-notes" rows="3"></textarea>
-            </div>
-            <div class="form-field form-field-full">
-              <label for="post-extra">Anything else</label>
-              <textarea id="post-extra" rows="2"></textarea>
-            </div>
-            <div class="form-field">
-              <label for="post-pay-method">Pay method</label>
-              <input type="text" id="post-pay-method" placeholder="Uses profile value if empty." />
-            </div>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Post walk</button>
-            <span class="form-status" id="post-status"></span>
-          </div>
-        </form>
-      </section>
-
-      <!-- Open walks -->
-      <section class="view" id="view-open-jobs">
-        <div class="section-header">
-          <h2>Open walks</h2>
-          <p>City-based listing. Exact address appears only after acceptance.</p>
-        </div>
-        <div id="open-jobs-list" class="cards-list"></div>
-      </section>
-
-      <!-- Current walks -->
-      <section class="view" id="view-current">
-        <div class="section-header">
-          <h2>Current walk</h2>
-          <p>Assigned walks where you are owner or walker.</p>
-        </div>
-        <div id="current-list" class="cards-list"></div>
-      </section>
-
-      <!-- My bids -->
-      <section class="view" id="view-my-bids">
-        <div class="section-header">
-          <h2>My bids</h2>
-          <p>Track your bids, counters, and accepted walks.</p>
-        </div>
-        <div id="my-bids-list" class="cards-list"></div>
-      </section>
-
-      <!-- Owner job view (manage bids) -->
-      <section class="view" id="view-owner-job">
-        <div class="section-header">
-          <button class="btn btn-small btn-ghost" id="btn-owner-job-back">← Back</button>
-          <h2 id="owner-job-title">Walk</h2>
-          <p id="owner-job-sub"></p>
-        </div>
-        <div class="layout-split">
-          <div class="card" id="owner-job-meta"></div>
-          <div class="card">
-            <h3>Bids</h3>
-            <div id="owner-job-bids"></div>
-          </div>
-        </div>
-      </section>
-
-    </main>
-
-    <!-- Toast -->
-    <div id="toast" class="toast hidden"></div>
-
-    <!-- Login modal -->
-    <div class="modal-backdrop hidden" id="login-modal">
-      <div class="modal">
-        <button class="modal-close" id="login-close">&times;</button>
-
-        <!-- Step 1: email -->
-        <div id="login-step-email">
-          <h2>Sign in</h2>
-          <p>We send a 6-digit code to your email. No password.</p>
-          <form id="form-login-email" class="form">
-            <div class="form-field">
-              <label for="login-email">Email</label>
-              <input type="email" id="login-email" required />
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Send code</button>
-              <span class="form-status" id="login-email-status"></span>
-            </div>
-          </form>
-        </div>
-
-        <!-- Step 2: code -->
-        <div id="login-step-code" class="hidden">
-          <h2>Enter code</h2>
-          <p>Check your inbox. For testing, <code>555555</code> always works.</p>
-          <form id="form-login-code" class="form">
-            <div class="form-field">
-              <label for="login-code">6-digit code</label>
-              <input
-                type="text"
-                id="login-code"
-                maxlength="6"
-                inputmode="numeric"
-                pattern="[0-9]{6}"
-                required
-              />
-            </div>
-            <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Verify</button>
-              <button class="btn btn-ghost" type="button" id="login-back">Back</button>
-              <span class="form-status" id="login-code-status"></span>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Debug panel -->
-    <aside class="debug-panel" id="debug-panel">
-      <div class="debug-header">
-        <span>Last server response</span>
-        <button class="btn btn-tiny" id="debug-toggle">Hide</button>
-      </div>
-      <pre id="debug-content">–</pre>
-    </aside>
-
-    <footer class="footer">
-      <span>© igo · matching owners & walkers.</span>
-      <span>No insurance. igo is only a matching hub.</span>
-    </footer>
-  </div>
+  <!-- App -->
+  <script type="text/babel" src="app.js"></script>
 </body>
 </html>
