@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IGO-HUB - Jobs</title>
+
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: '#0B0F14',
+            surface: '#141A22',
+            primary: '#FF6B3D',
+            accent: '#FF9A3D',
+            textMain: '#F3F4F6',
+            textMuted: '#9CA3AF',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background: #0B0F14; }
+  </style>
+</head>
+<body class="bg-background text-textMain">
+  <div id="root"></div>
+
+  <script src="api.js"></script>
+  <script src="auth.js"></script>
+  <script src="utils/backend.js"></script>
+
+  <script type="text/babel" src="components/Header.js"></script>
+  <script type="text/babel" src="components/Footer.js"></script>
+  <script type="text/babel" src="components/JobBoard.js"></script>
+
+  <script type="text/babel" src="jobs-app.js"></script>
+</body>
+</html>
